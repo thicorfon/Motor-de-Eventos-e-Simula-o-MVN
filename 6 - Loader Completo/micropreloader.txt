@@ -1,0 +1,80 @@
+EC2
+EC2 D200 # Zera o cursor de entrada
+EC4 3090 # Carrega 91 no Acc
+EC6 9ED4 # Começa a montar a instrução de store inicial
+EC8 3010 # Carrega 11 no Acc
+ECA 9EE4 # Começa a montar o jump para o inicio do programa	
+ECC 3000 # Carrega 10 no Acc
+ECE 9ED5 # Termina de montar a instrução de store inicial
+ED0 9EE5 # Termina de montar a instrução de jump para o inicio do programa
+ED2 AF00 # Chama Carregar Byte
+ED4 9000 # PROXIMO STORE
+ED6 AEF4 # Carrega Proximo Store
+ED8 4FEA # Soma 1
+EDA AEE8 # Store proximo store
+EDC 3000 # Carrega 0
+EDE 8FE4 # Carrega Contador
+EE0 5FEA # Subtrai 1
+EE2 9FE4 # Grava o Contador
+EE4 1000 # Se zero, vai para o inicio do programa
+EE6 0ED2 # Grava proximo byte
+EE8 Store proximo store
+EEA 9ED5 # Grava o byte menos signifacativo do store
+EEC 7FEE # Acc/10
+EEE 7FEE # Acc/10
+EF0 9ED4 # Grava o byte mais significativo
+EF2 BEE8 # Retorno	
+EF4 Load proximo store
+EF6 8ED4 # Carrega o byte mais significativo
+EF8 6FEE # Acc *10
+EFA 6FEE # Acc *10
+EFC 4ED5 # Soma com o byte menos significativo
+EFE BEF4 # Retorno		
+F00 Carrega Byte de arquivo Binario no acumulador
+F02 D100
+F04 5FE8 # Acc - '0'
+F06 6FF1 # Acc *= 128
+F08 9FE7 # Montador = Acc
+F0A D100 
+F0C 5FE8
+F0E 6FF0 # Acc *= 64
+F10 4FE7
+F12 9FE7
+F14 D100
+F16 5FE8
+F18 6FEF # Acc *=32
+F1A 4FE7
+F1C 9FE7
+F1E D100
+F20 5FE8
+F22 6FEE # Acc *= 16
+F24 4FE7
+F26 9FE7
+F28 D100
+F2A 5FE8
+F2C 6FED # Acc *= 8
+F2E 4FE7
+F30 9FE7
+F32 D100
+F34 5FE8
+F36 6FEC # Acc *= 4
+F38 4FE7
+F3A 9FE7
+F3C D100
+F3E 5FE8
+F40 6FEB # Acc *= 2
+F42 4FE7
+F44 9FE7
+F46 D100
+F48 5FE8
+F4A 4FE7
+F4C 9FE7
+F4E BF00
+FE2 0000 # Primeiro Endereco
+FE4 A200 # Tamanho do Programa e Contador
+FE6 0000 # e Montador de Byte
+FE8 3031 # '0' e '1'
+FEA 0102 # 1 e 2
+FEC 0408 # 4 e 8
+FEE 1020 # 16 e 32
+FF0 4080 # 64 e 128

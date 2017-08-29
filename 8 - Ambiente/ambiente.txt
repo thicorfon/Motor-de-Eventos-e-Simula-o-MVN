@@ -1,0 +1,257 @@
+BF0
+BF0 304F # Acc = 'O'
+BF2 E000
+BF4 303A # Acc = ':'
+BF6 E000
+BF8 D300
+BFA D400
+BFC 5DD6 # Acc -= '0'
+BFE 1C04 # Se 0, chama LOADER MEMORIA
+C00 AC08 
+C02 AD1C
+C04 AC66
+C06 0BF0
+C08 MOSTRAR MEMORIA
+C0A AD28 # Chama IMPRIMIR "E:"
+C0C D300 # Carrega no buffer o próximo byte
+C0E AD64 # Chama CARREGAR BYTE HEX
+C10 9DE4 # EnderecoInicial[0] = Acc
+C12 AD28 # Chama IMPRIMRIR "E:"
+C14 D300 # Carrega no buffer o proximo byte
+C16 AD64 # Chama CARREGAR BYTE HEX
+C18 9DE5 # EnderecoInicial[1] = Acc
+C1A AD28
+C1C D300
+C1E AD64
+C20 9DE6 # EnderecoFinal[0] = Acc
+C22 AD28
+C24 D300
+C26 AD64
+C28 9DE7 # EnderecoFinal[1] = Acc
+C2A AC92 # Chama IMPRIMIR LINHA_INICIAL
+C2C ACC8 # Chama IMPRIMIR LINHA
+C2E AD1C
+C30 AC3C # Chama ATUALIZAR ENDERECO E CARREGA SUBTRACAO
+C32 4DDD # Acc += 1
+C34 5DEE # Acc -= 0x10
+C36 2C3A
+C38 0C2C 
+C3A 0BF0 # Retorno 
+C3C ATUALIZAR ENDERECO E CARREGA SUBTRACAO
+C3E 8DE4 # Acc = EnderecoInicial[0]
+C40 6DDC # Acc *= 10
+C42 6DDC # Acc *= 10
+C44 4DE5 # Acc += EnderecoInicial[1]
+C46 4DDC # Acc += 10
+C48 9DE5 # EnderecoInicial[1] = Acc[1]
+C4A 7DDC # Acc /= 10
+C4C 7DDC # Acc /= 10
+C4E 9DE4 # EnderecoInicial[0] = Acc[0]
+C50 8DE7 # Acc = EnderecoFinal[1]
+C52 5DE5 # Acc -= EnderecoInicial[1]
+C54 9DED # Resto[1] = Acc
+C56 7DDC # Acc /= 10
+C58 7DDC # Acc /= 10
+C5A 4DE6 # Acc += EnderecoFinal[0]
+C5C 5DE4 # Acc -= EnderecoInicial[0]
+C5E 6DDC # Acc *= 10
+C60 6DDC # Acc *= 10
+C62 4DED # Acc += Resto[1]
+C64 BC3C
+C66 LOADER MEMORIA
+C68 AD28 # Chama IMPRIMIR "E:"
+C6A D300 # Carrega no buffer o próximo byte
+C6C AD64 # Chama CARREGAR BYTE HEX
+C6E 9C8E # Jump[0] = Acc
+C70 4DDB # Acc += 0x90
+C72 9C84 # ProxStore[0] = Acc
+C74 AD28 # Chama IMPRIMIR "E:"
+C76 D300 # Carrega no buffer o próximo byte
+C78 AD64 # Chama CARREGAR BYTE HEX
+C7A 9C8F # Jump[1] = Acc
+C7C 9C85 # ProxStore[1] = Acc
+C7E ACFE 
+C80 D300
+C82 AD64 # Chama CARREGAR BYTE HEX
+C84 9000 # ProxStore[]
+C86 AD40 # Chama CARREGAR PROXIMO STORE
+C88 4DDD # Acc += 1
+C8A AD34 # Chama GRAVAR PROXIMO STORE
+C8C 0C7E
+C8E 0C68 # Pula para o início do programa carregado (Jump[])
+C90 BC66 # Retorno
+C92 IMPRIMIR LINHA INICIAL
+C94 3030
+C96 9CA9 # Jump[1] = 0
+C98 AD14
+C9A AD14
+C9C AD14
+C9E AD14
+CA0 AD14
+CA2 AD14
+CA4 AD14
+CA6 AD14
+CA8 3030 # Acc = '0' (Print[])
+CAA E000
+CAC 8CA9 
+CAE 5DE3 # Acc -= '9'
+CB0 1CBE # Se Acc == 9
+CB2 8CA9 # Acc = Print[1]
+CB4 4DDD # Acc += 1
+CB6 9CA9 # Print[1] = Acc
+CB8 5DE8 # Acc -= 'G'
+CBA 2CA0 # Se negativo, pular para \\\
+CBC 0CC4
+CBE 3041
+CC0 9CA9 # Print[1] = Acc
+CC2 0CA0
+CC4 AD1C
+CC6 BC92
+CC8 IMPRIMIR LINHA
+CCA 3010 # Acc = 0x10
+CCC 9DEA # Contador = Acc
+CCE 8DE4 # Acc = EnderecoInicial[0]
+CD0 9DE0 # BytePut = Acc
+CD2 4DE9 # Acc += 0x80
+CD4 9CE6 # ProxLoad[] = 0
+CD6 AD9C # Chama PUT BYTE HEX
+CD8 8DE5 # Acc = EnderecoInicial[1]
+CDA 9DE0 # BytePut = Acc
+CDC 9CE7 # ProxLoad[1] = Acc
+CDE AD9C # Chama PUT BYTE HEX
+CE0 AD14
+CE2 AD14
+CE4 AD14
+CE6 8000 # ProxLoad[]
+CE8 9DE0 # BytePut = Acc
+CEA AD9C # Chama PUT BYTE HEX
+CEC AD58 # Carregar ProxLoad[]
+CEE 4DDD # Acc += 1
+CF0 AD4C # Gravar ProxLoad[]
+CF2 8DEA # Acc = Contador
+CF4 5DDD # Acc -= 1
+CF6 9DEA # Contador = Acc
+CF8 1CFC # Se 0, sai da subrotina
+CFA 0CE0
+CFC BCC8
+CFE Imprimir "ENDEREÇO:"
+D00 8C84 # Acc = ProxStore[0]
+D02 5DDB # Acc -= 0x90
+D04 9DE0 # BytePut = Acc
+D06 AD9C # Chama PUT BYTE HEX 
+D08 8C85 # Acc = ProxStore[1]
+D0A 9DE0 # BytePut = Acc
+D0C AD9C # Chama PUT BYTE HEX
+D0E 303A # Acc = ':'
+D10 E000 # Imprime ':'
+D12 BCFE
+D14 IMPRIMIR_ESPACO
+D16 3020 # Acc = ' '
+D18 E000
+D1A BD14
+D1C PULAR LINHA
+D1E 300D
+D20 E000
+D22 300A
+D24 E000
+D26 BD1C
+D28 IMPRIMIR "E:"
+D2A 3045 # Acc = 'E'
+D2C E000 # Imprime 'E'
+D2E 303A # Acc = ':'
+D30 E000 # Imprime ':'
+D32 BD28 # Retorno 
+D34 GRAVAR PROXIMO STORE 
+D36 9C85 # Grava o byte menos signifacativo do store
+D38 7DDC # Acc/10
+D3A 7DDC # Acc/10
+D3C 9C84 # Grava o byte mais significativo
+D3E BD34 # Retorno
+D40 CARREGAR PROXIMO STORE
+D42 8C84 # Carrega o byte mais significativo
+D44 6DDC # Acc *10
+D46 6DDC # Acc *10
+D48 4C85 # Soma com o byte menos significativo
+D4A BD40 # Retorno	
+D4C GRAVAR PROXIMO LOAD
+D4E 9CE7 # Grava o byte menos signifacativo do store
+D50 7DDC # Acc/10
+D52 7DDC # Acc/10
+D54 9CE6 # Grava o byte mais significativo
+D56 BD4C # Retorno
+D58 CARREGAR PROXIMO LOAD
+D5A 8CE6
+D5C 6DDC
+D5E 6DDC
+D60 4CE7
+D62 BD58
+D64 CARREGAR BYTE HEX (CHECA @ E >)
+D66 D400
+D68 9DD9 # AuxHex = Acc
+D6A 5DDE # Acc -= '@'
+D6C 1C90 # Se 0, pular para C90
+D6E 8DD9 # Acc = AuxHex
+D70 5DDF # Acc -= '>'
+D72 1C8E # Se 0, pular para C8E
+D74 8DD9 # Acc = AuxHex
+D76 5DD6 # Acc -= '0'
+D78 9DD9 # AuxHex = Acc
+D7A 5DD7 # Acc -= 0x11
+D7C 2D82 # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+D7E 4DDA # Acc += 0xA
+D80 0D84 # Pula pra D84
+D82 8DD9 # Acc += AuxHex
+D84 6DDC # Acc *= 0x10
+D86 9DD8 # Montador = Acc
+D88 D400
+D8A 5DD6 # Acc -= '0'
+D8C 9DD9 AuxHex = Acc
+D8E 5DD7 # Acc -= 0x11
+D90 2D96 # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+D92 4DDA # Acc += 0xA
+D94 0D98 # Pula para D98
+D96 8DD9 # Acc = AuxHex
+D98 4DD8 # Acc += Montador
+D9A BD64
+D9C PUT BYTE HEX
+D9E 8DE0 # Acc = BytePut
+DA0 7DDC # Acc /= 10
+DA2 9DE1 # ByteAux = Acc
+DA4 5DDA # Acc -= A
+DA6 2DB0 # Se negativo, Acc < 0xA.
+DA8 8DE1 # Acc = ByteAux
+DAA 4DE2 # Acc += 0x37
+DAC E000 # Coloca no Arquivo
+DAE 0DB6
+DB0 8DE1 # Acc = ByteAux
+DB2 4DD6 # Acc += 0x30
+DB4 E000
+DB6 8DE1 # Acc = ByteAux
+DB8 6DDC # Acc *= 0x10
+DBA 9DE1 # ByteAux = Acc
+DBC 8DE0 # Acc = BytePut
+DBE 5DE1 # Acc -= ByteAux
+DC0 9DE1 # ByteAux = Acc
+DC2 5DDA # Acc -= A
+DC4 2DCE # Se negativo, Acc < 0xA
+DC6 8DE1 # Acc = ByteAux
+DC8 4DE2 # Acc += 0x37
+DCA E000 # Coloca no Arquivo
+DCC BD9C # Retorno
+DCE 8DE1 # Acc = ByteAux
+DD0 4DD6 # Acc += 0x30
+DD2 E000 # Coloca no Arquivo
+DD4 BD9C # Retorno
+DD6 3011 # '0' e ('A'-'0')
+DD8 0000 # Montador e AuxHex
+DDA 0A90 # 0xA e 0x90
+DDC 1001 # 16 e 1
+DDE 403E # '@' e '>'
+DE0 0000 # BytePut e ByteAux
+DE2 3739 # 0x37 e '9'
+DE4 0000 # EnderecoInicial[]
+DE6 0000 # EnderecoFinal[]
+DE8 4780 # 'G' e 0x80
+DEA 0000 # Contador
+DEC 0000 # Resto[]
+DEE 0F00 

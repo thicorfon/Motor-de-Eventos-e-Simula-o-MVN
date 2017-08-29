@@ -1,0 +1,134 @@
+D200 # Zera o cursor de entrada
+D102 # Acc = 'B' ou 'H'	
+5(XXX+1) # Acc -= 'B'
+9(!!!) # FlagHex = Acc
+A(@@@) # Chama CARREGAR BYTE
+4(BBB+1) # Acc += 0x20
+9(CCC) # Jump[0] = Acc
+A(@@@) # Chama CARREGAR BYTE
+9(CCC+1) # Termina de montar a instrucao
+D102 # pula o enter
+D102 # pula o carriage return
+(HHH) A(DDD) # Carrega o bloco
+A(@@@) # Carrega o byte de checksum
+5(EEE) # Subtrai do checksum obtido
+1(FFF) # Se forem iguais, continua execucao. Caso contrario, carrega FFF no acumulador e termina a execucao
+3FFF
+(GGG) C(GGG)
+(FFF) D102 # Pula o enter
+D102 # Pula o \n
+(CCC) 2000 # Se EOF, pula para a execução do programa (Jump[])
+0(HHH) # Carrega o proximo bloco
+(DDD) Carregador de Bloco
+3000 # Carrega 0 no acumulador
+9(EEE) # Zera o checksum
+A(@@@) # Carrega primeiro byte de endereço
+4(III+1) # Soma 90 ao byte
+9(JJJ) # Começa a montar o primeiro store
+A(@@@) # Carrega proximo byte de endereço
+9(JJJ+1) # Termina de montar a instrução de store
+A(@@@) # Carrega o tamanho do arquivo
+9(III) # Grava o tamanho do arquivo
+(OOO) A(@@@) # Chama Carregar Byte
+(JJJ) 9000 # PROXIMO STORE
+4(EEE) # Soma o checksum
+9(EEE) # Grava o checksum
+A(KKK) # Carrega Proximo Store
+4(LLL) # Soma 1
+A(MMM) # Store proximo store
+8(III) # Carrega Contador
+5(LLL) # Subtrai 1
+9(III) # Grava o Contador
+1(NNN) # Se zero, retorna da subrotina
+0(OOO) # Grava proximo byte
+(NNN) B(DDD)
+(MMM) Store proximo store
+9(JJJ+1) # Grava o byte menos signifacativo do store
+7(BBB) # Acc/10
+7(BBB) # Acc/10
+9(JJJ) # Grava o byte mais significativo
+B(MMM) # Retorno	
+(KKK) Load proximo store
+8(JJJ) # Carrega o byte mais significativo
+6(BBB) # Acc *10
+6(BBB) # Acc *10
+4(JJJ+1) # Soma com o byte menos significativo
+B(KKK) # Retorno		
+(AAA) Carrega Byte de arquivo Binario no acumulador
+D102
+5(PPP) # Acc - '0'
+6(QQQ+1) # Acc *= 128
+9(RRR+1) # Montador = Acc
+D102 
+5(PPP)
+6(QQQ) # Acc *= 64
+4(RRR+1)
+9(RRR+1)
+D102
+5(PPP)
+6(BBB+1) # Acc *=32
+4(RRR+1)
+9(RRR+1)
+D102
+5(PPP)
+6(BBB) # Acc *= 16
+4(RRR+1)
+9(RRR+1)
+D102
+5(PPP)
+6(SSS+1) # Acc *= 8
+4(RRR+1)
+9(RRR+1)
+D102
+5(PPP)
+6(SSS) # Acc *= 4
+4(RRR+1)
+9(RRR+1)
+D102
+5(PPP)
+6(LLL+1) # Acc *= 2
+4(RRR+1)
+9(RRR+1)
+D102
+5(PPP)
+4(RRR+1)
+9(RRR+1)
+B(AAA)
+(TTT) Carrega byte de arquivo hexa no acumulador
+D102
+5(PPP) # Subtrai '0'
+9(EEE+1) # Grava em (EEE+1)
+5(PPP+1) # Subtrai 0x11
+2(UUU) # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+4(XXX) # Soma 0xA
+0(VVV) # Pula pra (VVV)
+(UUU) 8(EEE+1) # Carrega o valor de (EEE+1)
+(VVV) 6(BBB) # Shift para a esquerda
+9(RRR+1)
+D102
+5(PPP) # Subtrai '0'
+9(EEE+1) # Grava em (EEE+1)
+5(PPP+1) # Subtrai 0x11
+2(YYY) # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+4(XXX) # Soma 0xA
+0(ZZZ) # Pula para (ZZZ)
+(YYY) 8(EEE+1)
+(ZZZ) 4(RRR+1) # Grava em (RRR+1)
+B(TTT)
+(@@@) CARREGAR BYTE
+8(!!!) # Acc = FlagHex
+1(###) # Se 0, CARREGAR BYTE BINARIO
+A(TTT) # Chama CARREGAR BYTE HEX
+0($$$) 
+(###) A(AAA) # Chama CARREGAR BYTE BINARIO
+($$$) B(@@@) # Retorno
+(III) 0090 # Contador de tamanho e 90
+(RRR) 0000 # Byte de endereço e Montador de Byte
+(PPP) 3011 # '0' e ('A'-'0')
+(LLL) 0102 # 1 e 2
+(SSS) 0408 # 4 e 8
+(BBB) 1020 # 16 e 32
+(QQQ) 4080 # 64 e 128
+(EEE) 0000 # Checksum e Auxiliar Hex
+(XXX) 0A42 # 10 e 'B'
+(!!!) 0000 # FlagHex

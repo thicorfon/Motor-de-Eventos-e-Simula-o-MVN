@@ -1,0 +1,179 @@
+A00
+A00 8B5E # Acc = EnderecoInicial[0] (Carrega o byte mais significativo do endereço inicial do programa)
+A02 9B4E # BytePut = Acc
+A04 9B5C # EnderecoBloco[0] = Acc
+A06 AAC6 # Chama PUT BYTE
+A08 8B5F # Acc = EnderecoInicial[1] (Carrega o byte menos significativo do endereço inicial do programa)
+A0A 9B5D # EnderecoBloco[1] = Acc
+A0C 9B4E # BytePut = Acc
+A0E AAC6 # Chama PUT BYTE
+A10 AA46 # Chama ENDERECO FINAL - ENDERECO BLOCO
+A12 AA60 # Chama CARREGAR RESTO
+A14 2A44 # Se a subtração for negativa, encerra o programa
+A16 5B59 # Acc -= 0x7E (126)
+A18 2A20 # Se Acc < 0, o tamanho do bloco é menor do que o máximo.
+A1A 307F # Carrega 127
+A1C 9B5A # Tamanho = Acc
+A1E 0A26
+A20 AA60 # Chama CARREGAR RESTO
+A22 4B50 # Acc += 1
+A24 9B5A # Tamanho = Acc
+A26 300D # Carrega o "Carriage Return"
+A28 E110 # Coloca no arquivo
+A2A 300A # Carrega o "New Line Feed"
+A2C E110 # Coloca no arquivo
+A2E AA6C # Chama CARREGAR BLOCO
+A30 8B5C
+A32 6B54
+A34 6B54
+A36 4B5D # Carrega o endereço inicial do bloco
+A38 4B5A # Soma com o tamanho do ultimo arquivo
+A3A 9B5D # Grava o byte menos significativo do endereço inicial do bloco
+A3C 7B54
+A3E 7B54
+A40 9B5C # Grava o byte menos significativo do endereço inicial do bloco
+A42 0A10
+A44 CA44
+A46 ENDERECO FINAL - ENDERECO BLOCO --- Grava em Resto[] o resultado da subtracao entre EnderecoFinal[] e EnderecoBloco[]
+A48 8B61 # Acc = EnderecoFinal[1]
+A4A 5B5D # Acc -= EnderecoBloco[1]
+A4C 9B63 # Resto[1] = Acc
+A4E 7B54 # Acc /= 10;
+A50 7B54 # Acc /= 10;
+A52 9B62 # Resto[0] = Acc (Armazena o Carry)
+A54 8B60 # Acc = EnderecoFinal[0]
+A56 4B62 # Acc += Resto[0] (Carry)
+A58 5B5C # Acc -= EnderecoBloco[0]
+A5A 9B62 # Resto[0] = Acc
+A5C BA46 # Retorno
+A60 CARREGAR RESTO - Faz Acc = Resto[]
+A62 8B62 # Acc = Resto[0]
+A64 6B54 # Acc *= 10
+A66 6B54 # Acc *= 10
+A68 4B63 # Acc += Resto[1]
+A6A BA60 # Retorno
+A6C CARREGAR BLOCO - Carrega um bloco no arquivo, dado um certo EnderecoBloco[] e Tamanho
+A6E 3000 # Acc = 0
+A70 9B64 # Checksum = 0
+A72 9B5B # Contador = 0
+A74 8B5C # Acc = EnderecoBloco[0]
+A76 9B4E # BytePut = Acc
+A78 4B57 # Acc += 0x80
+A7A 9A8C # ProxLoad[0] = Acc
+A7C AAC6 # Chama PUT BYTE
+A7E 8B5D # Acc = EnderecoBloco[1]
+A80 9B4E # BytePut = Acc
+A82 9A8D # ProxLoad[1]
+A84 AAC6 # Chama PUT BYTE
+A86 8B5A # Acc = Tamanho
+A88 9B4E # BytePut = Acc
+A8A AAC6 # Chama PUT BYTE
+A8C 0000 # ProxLoad[]
+A8E 9B4E # BytePut = Acc
+A90 4B64 # Acc += Checksum
+A92 9B64 # Checksum = Acc
+A94 AAC6 # Chama PUT Byte
+A96 AABA # Chama CARREGAR PROXIMO LOAD
+A98 4B50 # Acc += 1
+A9A AAAE # Chama GRAVAR PROXIMO LOAD
+A9C 8B5B # Acc = Contador
+A9E 4B50 # Acc += 1
+AA0 9B5B # Contador = Acc
+AA2 5B5A # Acc -= Tamanho
+AA4 2A8C # Se negativo, o bloco não acabou e carrega-se mais um byte
+AA6 8B64 # Acc = Checksum
+AA8 9B4E # BytePut = Checksum
+AAA AAC6 # Chama PUT BYTE
+AAC BA6C # Fim de gravação do bloco
+AAE STORE PROXIMO LOAD 
+AB0 9A8D # ProxLoad[1] = Acc
+AB2 7B54 # Acc /= 10
+AB4 7B54 # Acc /= 10
+AB6 9A8C # ProxLoad[0] = Acc
+AB8 BAAE # Retorno
+ABA CARREGAR PROXIMO LOAD 
+ABC 8A8C # ProxLoad[0] = Acc
+ABE 6B54 # Acc *10
+AC0 6B54 # Acc *10
+AC2 4A8D # ProxLoad[1] = Acc
+AC4 BABA # Retorno
+AC6 PUT BYTE --- Coloca BytePut no arquivo de maneira binaria
+AC8 8B4E # Acc = BytePut
+ACA 7B57 # Acc /= 0x80
+ACC 4B58 # Acc += '0
+ACE E110 # Coloca no arquivo
+AD0 5B58 # Acc -= '0
+AD2 6B57 # Acc *= 0x80
+AD4 9B4F # ByteAux = Acc
+AD6 8B4E # Acc = BytePut
+AD8 5B4F # Acc -= ByteAux
+ADA 9B4E # BytePut = Acc
+ADC 7B56 # Acc /= 0x40
+ADE 4B58 # Acc += '0
+AE0 E110 # Coloca no Arquivo
+AE2 5B58 # Acc -= '0
+AE4 6B56 # Acc *= 0x40
+AE6 9B4F # BytePut = Acc
+AE8 8B4E # Acc = BytePut
+AEA 5B4F # Acc -= ByteAux
+AEC 9B4E # BytePut = Acc
+AEE 7B55 # Acc /= 0x20
+AF0 4B58 # Acc += '0
+AF2 E110 # Coloca no Arquivo
+AF4 5B58 # Acc -= '0
+AF6 6B55 # Acc *= 0x20
+AF8 9B4F # BytePut = Acc
+AFA 8B4E # Acc = BytePut
+AFC 5B4F # Acc -= ByteAux
+AFE 9B4E # BytePut = Acc
+B00 7B54 # Acc /= 0x10
+B02 4B58 # Acc += '0
+B04 E110 # Coloca no Arquivo
+B06 5B58 # Acc -= '0
+B08 6B54 # Acc *= 0x10
+B0A 9B4F # BytePut = Acc
+B0C 8B4E # Acc = BytePut
+B0E 5B4F # Acc -= ByteAux
+B10 9B4E # BytePut = Acc
+B12 7B53 # Acc /= 0x8
+B14 4B58 # Acc += '0
+B16 E110 # Coloca no Arquivo
+B18 5B58 # Acc -= '0
+B1A 6B53 # Acc *= 0x8
+B1C 9B4F # BytePut = Acc
+B1E 8B4E # Acc = BytePut
+B20 5B4F # Acc -= ByteAux
+B22 9B4E # BytePut = Acc
+B24 7B52 # Acc /= 0x04
+B26 4B58 # Acc += '0
+B28 E110 # Coloca no Arquivo
+B2A 5B58 # Acc -= '0
+B2C 6B52 # Acc *= 0x04
+B2E 9B4F # BytePut = Acc
+B30 8B4E # Acc = BytePut
+B32 5B4F # Acc -= ByteAux
+B34 9B4E # BytePut = Acc
+B36 7B51 # Acc /= 0x02
+B38 4B58 # Acc += '0
+B3A E110 # Coloca no Arquivo
+B3C 5B58 # Acc -= '0
+B3E 6B51 # Acc *= 0x02
+B40 9B4F # BytePut = Acc
+B42 8B4E # Acc = BytePut
+B44 5B4F # Acc -= BytePut
+B46 9B4E # BytePut = Acc
+B48 4B58 # Acc += '30
+B4A E110 # Coloca no Arquivo
+B4C BAC6 # Retorno
+B4E 0000 # BytePut e ByteAux
+B50 0102 # 1 e 2
+B52 0408 # 4 e 8
+B54 1020 # 16 e 32
+B56 4080 # 64 e 128
+B58 307E # '0' e 126
+B5A 0000 # TamanhoBloco e Contador
+B5C 0000 # Endereço inicial do bloco (EnderecoBloco[])
+B5E 0000 # Endereço inicial do programa (EnderecoInicio[]) (SETAR ANTES DE RODAR)
+B60 00A1 # Endereço final do programa (EnderecoFinal[])	(SETAR ANTES DE RODAR)
+B62 0000 # Resto[]
+B64 0000 # Checksum

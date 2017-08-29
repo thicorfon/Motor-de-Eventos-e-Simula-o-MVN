@@ -1,0 +1,82 @@
+000
+000 D200 # Zera o cursor de entrada
+002 A044 # Carrega primeiro byte de endereço
+004 4095 # Soma 90 ao byte
+006 901A # Começa a montar o primeiro store
+008 5095 # Tira 90 do byte
+00A 409E # Soma 10 ao byte
+00C 9028 # Começa a montar a instrução de jump
+00E A044 # Carrega proximo byte de endereço
+010 901B # Termina de montar a instrução de store
+012 9029 # Termina de montar a instrução de jump
+014 A044 # Carrega o tamanho do arquivo
+016 9094 # Grava o tamanho do arquivo
+018 A044 # Chama Carregar Byte
+01A 9000 # PROXIMO STORE
+01C A038 # Carrega Proximo Store
+01E 409A # Soma 1
+020 A02C # Store proximo store
+022 8094 # Carrega Contador
+024 509A # Subtrai 1
+026 9094 # Grava o Contador
+028 1000 # Se zero, vai para o inicio do programa
+02A 0018 # Grava proximo byte
+02C Store proximo store
+02E 901B # Grava o byte menos signifacativo do store
+030 709E # Acc/10
+032 709E # Acc/10
+034 901A # Grava o byte mais significativo
+036 B02C # Retorno	
+038 Load proximo store
+03A 801A # Carrega o byte mais significativo
+03C 609E # Acc *10
+03E 609E # Acc *10
+040 401B # Soma com o byte menos significativo
+042 B038 # Retorno		
+044 Carrega Byte de arquivo Binario no acumulador
+046 D101
+048 5098 # Acc - '0'
+04A 60A1 # Acc *= 128
+04C 9097 # Montador = Acc
+04E D101 
+050 5098
+052 60A0 # Acc *= 64
+054 4097
+056 9097
+058 D101
+05A 5098
+05C 609F # Acc *=32
+05E 4097
+060 9097
+062 D101
+064 5098
+066 609E # Acc *= 16
+068 4097
+06A 9097
+06C D101
+06E 5098
+070 609D # Acc *= 8
+072 4097
+074 9097
+076 D101
+078 5098
+07A 609C # Acc *= 4
+07C 4097
+07E 9097
+080 D101
+082 5098
+084 609B # Acc *= 2
+086 4097
+088 9097
+08A D101
+08C 5098
+08E 4097
+090 9097
+092 B044
+094 0090 # Contador de tamanho e 90
+096 0000 # Byte de endereço e Montador de Byte
+098 3031 # '0' e '1'
+09A 0102 # 1 e 2
+09C 0408 # 4 e 8
+09E 1020 # 16 e 32
+0A0 4080 # 64 e 128

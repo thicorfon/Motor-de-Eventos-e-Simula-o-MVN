@@ -1,0 +1,102 @@
+F00
+F00 D200 # Zera o cursor de entrada
+F02 AF6A # Chama CARREGAR BYTE (obtem primeiro byte do endereço de execucao)
+F04 4FC5 # Acc += 0x20
+F06 9F20 # Jump[0] = Acc
+F08 AF6A # Chama CARREGAR BYTE (obtem segundo byte do endereço de execucao)
+F0A 9F21 # Jump[1] = Acc
+F0C D102 # Pula o enter
+F0E D102 # Pula o carriage return
+F10 AF24 # Carrega o bloco
+F12 AF6A # Carrega o byte de checksum
+F14 5FC8 # Subtrai do checksum obtido
+F16 1F1C # Se forem iguais, continua execucao. Caso contrario, carrega FFF no acumulador e termina a execucao
+F18 3FFF
+F1A CF1A
+F1C D102 # Pula o enter
+F1E D102 # Pula o carriage return
+F20 2000 # Se EOF, pula para a execução do programa
+F22 0F10 # Carrega o proximo bloco
+F24 Carregador de Bloco
+F26 3000 # Acc = 0
+F28 9FC8 # Checksum = 0
+F2A AF6A # Chama CARREGAR BYTE (obtem primeiro byte do endereço de carga do bloco)
+F2C 4FBB # Acc += 0x90
+F2E 9F3A # Store[0] = Acc
+F30 AF6A # Chama CARREGAR BYTE (obtem segundo byte do endereço de carga do bloco)
+F32 9F3B # Store[1] = Acc
+F34 AF6A # Chama CARREGAR BYTE (carrega tamanho do bloco)
+F36 9FBA # Tamanho = Acc
+F38 AF6A # Chama CARREGAR BYTE
+F3A 9000 # Store []
+F3C 4FC8 # Acc += Checksum
+F3E 9FC8 # Checksum = Acc
+F40 AF5E # Chama CARREGAR PROXIMO STORE
+F42 4FC0 # Acc += 1
+F44 AF52 # Chama GRAVAR PROXIMO STORE
+F46 8FBA # Acc = Contador
+F48 5FC0 # Acc -= 1
+F4A 9FBA # Contador = Acc
+F4C 1F50 # Se zero, retorna da subrotina
+F4E 0F38 # Grava proximo byte
+F50 BF24
+F52 GRAVA PROXIMO STORE
+F54 9F3B # Grava o byte menos signifacativo do store
+F56 7FC4 # Acc/10
+F58 7FC4 # Acc/10
+F5A 9F3A # Grava o byte mais significativo
+F5C BF52 # Retorno	
+F5E LOAD PROXIMO STORE
+F60 8F3A # Carrega o byte mais significativo
+F62 6FC4 # Acc *10
+F64 6FC4 # Acc *10
+F66 4F3B # Soma com o byte menos significativo
+F68 BF5E # Retorno		
+F6A CARREGAR BYTE
+F6C D102
+F6E 5FBE # Acc - '0'
+F70 6FC7 # Acc *= 128
+F72 9FBD # Montador = Acc
+F74 D102 
+F76 5FBE
+F78 6FC6 # Acc *= 64
+F7A 4FBD
+F7C 9FBD
+F7E D102
+F80 5FBE
+F82 6FC5 # Acc *=32
+F84 4FBD
+F86 9FBD
+F88 D102
+F8A 5FBE
+F8C 6FC4 # Acc *= 16
+F8E 4FBD
+F90 9FBD
+F92 D102
+F94 5FBE
+F96 6FC3 # Acc *= 8
+F98 4FBD
+F9A 9FBD
+F9C D102
+F9E 5FBE
+FA0 6FC2 # Acc *= 4
+FA2 4FBD
+FA4 9FBD
+FA6 D102
+FA8 5FBE
+FAA 6FC1 # Acc *= 2
+FAC 4FBD
+FAE 9FBD
+FB0 D102
+FB2 5FBE
+FB4 4FBD
+FB6 9FBD
+FB8 BF6A
+FBA 0090 # Contador de tamanho e 90
+FBC 0000 # Byte de endereço e Montador
+FBE 3031 # '0' e '1'
+FC0 0102 # 1 e 2
+FC2 0408 # 4 e 8
+FC4 1020 # 16 e 32
+FC6 4080 # 64 e 128
+FC8 0000 # Checksum e

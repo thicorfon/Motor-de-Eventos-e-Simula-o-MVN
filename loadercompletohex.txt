@@ -1,0 +1,135 @@
+E00
+E00 D200 # Zera o cursor de entrada
+E02 D102 # Acc = 'B' ou 'H'	
+E04 5F09 # Acc -= 'B'
+E06 9F0A # FlagHex = Acc
+E08 AEEA # Chama CARREGAR BYTE
+E0A 4F03 # Acc += 0x20
+E0C 9E26 # Jump[0] = Acc
+E0E AEEA # Chama CARREGAR BYTE
+E10 9E27 # Termina de montar a instrucao
+E12 D102 # pula o enter
+E14 D102 # pula o carriage return
+E16 AE2A # Carrega o bloco
+E18 AEEA # Carrega o byte de checksum
+E1A 5F06 # Subtrai do checksum obtido
+E1C 1E22 # Se forem iguais, continua execucao. Caso contrario, carrega FFF no acumulador e termina a execucao
+E1E 3FFF
+E20 CE20
+E22 D102 # Pula o enter
+E24 D102 # Pula o \n
+E26 2000 # Se EOF, pula para a execução do programa (Jump[])
+E28 0E16 # Carrega o proximo bloco
+E2A Carregador de Bloco
+E2C 3000 # Carrega 0 no acumulador
+E2E 9F06 # Zera o checksum
+E30 AEEA # Carrega primeiro byte de endereço
+E32 4EF9 # Soma 90 ao byte
+E34 9E40 # Começa a montar o primeiro store
+E36 AEEA # Carrega proximo byte de endereço
+E38 9E41 # Termina de montar a instrução de store
+E3A AEEA # Carrega o tamanho do arquivo
+E3C 9EF8 # Grava o tamanho do arquivo
+E3E AEEA # Chama Carregar Byte
+E40 9000 # PROXIMO STORE
+E42 4F06 # Soma o checksum
+E44 9F06 # Grava o checksum
+E46 AE64 # Carrega Proximo Store
+E48 4EFE # Soma 1
+E4A AE58 # Store proximo store
+E4C 8EF8 # Carrega Contador
+E4E 5EFE # Subtrai 1
+E50 9EF8 # Grava o Contador
+E52 1E56 # Se zero, retorna da subrotina
+E54 0E3E # Grava proximo byte
+E56 BE2A
+E58 Store proximo store
+E5A 9E41 # Grava o byte menos signifacativo do store
+E5C 7F02 # Acc/10
+E5E 7F02 # Acc/10
+E60 9E40 # Grava o byte mais significativo
+E62 BE58 # Retorno	
+E64 Load proximo store
+E66 8E40 # Carrega o byte mais significativo
+E68 6F02 # Acc *10
+E6A 6F02 # Acc *10
+E6C 4E41 # Soma com o byte menos significativo
+E6E BE64 # Retorno		
+E70 Carrega Byte de arquivo Binario no acumulador
+E72 D102
+E74 5EFC # Acc - '0'
+E76 6F05 # Acc *= 128
+E78 9EFB # Montador = Acc
+E7A D102 
+E7C 5EFC
+E7E 6F04 # Acc *= 64
+E80 4EFB
+E82 9EFB
+E84 D102
+E86 5EFC
+E88 6F03 # Acc *=32
+E8A 4EFB
+E8C 9EFB
+E8E D102
+E90 5EFC
+E92 6F02 # Acc *= 16
+E94 4EFB
+E96 9EFB
+E98 D102
+E9A 5EFC
+E9C 6F01 # Acc *= 8
+E9E 4EFB
+EA0 9EFB
+EA2 D102
+EA4 5EFC
+EA6 6F00 # Acc *= 4
+EA8 4EFB
+EAA 9EFB
+EAC D102
+EAE 5EFC
+EB0 6EFF # Acc *= 2
+EB2 4EFB
+EB4 9EFB
+EB6 D102
+EB8 5EFC
+EBA 4EFB
+EBC 9EFB
+EBE BE70
+EC0 Carrega byte de arquivo hexa no acumulador
+EC2 D102
+EC4 5EFC # Subtrai '0'
+EC6 9F07 # Grava em F07
+EC8 5EFD # Subtrai 0x11
+ECA 2ED0 # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+ECC 4F08 # Soma 0xA
+ECE 0ED2 # Pula pra ED2
+ED0 8F07 # Carrega o valor de F07
+ED2 6F02 # Shift para a esquerda
+ED4 9EFB
+ED6 D102
+ED8 5EFC # Subtrai '0'
+EDA 9F07 # Grava em F07
+EDC 5EFD # Subtrai 0x11
+EDE 2EE4 # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+EE0 4F08 # Soma 0xA
+EE2 0EE6 # Pula para EE6
+EE4 8F07
+EE6 4EFB # Grava em EFB
+EE8 BEC0
+EEA CARREGAR BYTE
+EEC 8F0A # Acc = FlagHex
+EEE 1EF4 # Se 0, CARREGAR BYTE BINARIO
+EF0 AEC0 # Chama CARREGAR BYTE HEX
+EF2 0EF6 
+EF4 AE70 # Chama CARREGAR BYTE BINARIO
+EF6 BEEA # Retorno
+EF8 0090 # Contador de tamanho e 90
+EFA 0000 # Byte de endereço e Montador de Byte
+EFC 3011 # '0' e ('A'-'0')
+EFE 0102 # 1 e 2
+F00 0408 # 4 e 8
+F02 1020 # 16 e 32
+F04 4080 # 64 e 128
+F06 0000 # Checksum e Auxiliar Hex
+F08 0A42 # 10 e 'B'
+F0A 0000 # FlagHex

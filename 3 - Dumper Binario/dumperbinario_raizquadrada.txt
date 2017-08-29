@@ -1,0 +1,113 @@
+D00
+D00 8DFE # Acc = EnderecoInicial[0]
+D02 9DF0 # Byteput = Acc
+D04 4DF9 # Acc += 0x80
+D06 9D18 # ProxLoad[0] = Acc
+D08 AD60 # Chama PUT BYTE
+D0A 8DFF # Acc = EnderecoInicial[1]
+D0C 9DF0 # BytePut = Acc
+D0E 9D19 # ProxLoad[1] = Acc
+D10 AD60 # Chama PUT BYTE
+D12 8DFC # Acc = Tamanho
+D14 9DF0 # BytePut = Acc
+D16 AD60 # Chama PUT BYTE
+D18 0000 # ProxLoad[] --- Instrucao que carrega o proximo byte na memoria
+D1A 9DF0 # BytePut = Acc
+D1C AD60 # Chama PUT BYTE
+D1E AD50 # Chama CARREGAR PROXIMO LOAD
+D20 4DF2 # Acc += 1
+D22 AD40 # Chama GRAVAR PROXIMO LOAD
+D24 8DFD # Acc = Contador
+D26 4DF2 # Soma 1
+D28 9DFD # Contador = Acc
+D2A 5DFC # Acc -= Tamanho
+D2C 2D18 # Se Tamanho > Contador, carrega proximo byte
+D2E CD2E # Encerra programa
+D40 GRAVAR PROXIMO LOAD --- Coloca Acc em ProxLoad[]
+D42 9D19 # ProxLoad[1] = Acc
+D44 7DF6 # Acc /= 10
+D46 7DF6 # Acc /= 10
+D48 9D18 # ProxLoad[0] = Acc
+D4A BD40 # Retorno	
+D50 CARREGAR PROXIMO LOAD --- Carrega ProxLoad[] no Acc
+D52 8D18 # Acc = ProxLoad[0]
+D54 6DF6 # Acc *= 10
+D56 6DF6 # Acc *= 10
+D58 4D19 # Acc += ProxLoad[1] 
+D5A BD50 # Retorno		
+D60 PUT BYTE --- Coloca BytePut no arquivo de maneira binaria
+D62 8DF0 # Acc = BytePut
+D64 7DF9 # Acc /= 0x80
+D66 4DFA # Acc += '0'
+D68 E101 # Coloca no arquivo
+D6A 5DFA # Acc -= '0'
+D6C 6DF9 # Acc *= 0x80
+D6E 9DF1 # ByteAux = Acc
+D70 8DF0 # Acc = BytePut
+D72 5DF1 # Acc -= ByteAux 
+D74 9DF0 # BytePut = Acc
+D76 7DF8 # Acc /= 0x40
+D78 4DFA # Acc += '0'
+D7A E101 # Coloca no Arquivo
+D7C 5DFA # Acc -= '0'
+D7E 6DF8 # Acc *= 0x40
+D80 9DF1 # BytePut = Acc
+D82 8DF0 # Acc = BytePut
+D84 5DF1 # Acc -= ByteAux
+D86 9DF0 # BytePut = Acc
+D88 7DF7 # Acc /= 0x20
+D8A 4DFA # Acc += '0
+D8C E101 # Coloca no Arquivo
+D8E 5DFA # Acc -= '0
+D90 6DF7 # Acc *= 0x20
+D92 9DF1 # BytePut = Acc
+D94 8DF0 # Acc = BytePut
+D96 5DF1 # Acc -= ByteAux
+D98 9DF0 # BytePut = Acc
+D9A 7DF6 # Acc /= 0x10
+D9C 4DFA # Acc += '0
+D9E E101 # Coloca no Arquivo
+DA0 5DFA # Acc -= '0
+DA2 6DF6 # Acc *= 0x10
+DA4 9DF1 # BytePut = Acc
+DA6 8DF0 # Acc = BytePut
+DA8 5DF1 # Acc -= ByteAux
+DAA 9DF0 # BytePut = Acc
+DAC 7DF5 # Acc /= 0x8
+DAE 4DFA # Acc += '0
+DB0 E101 # Coloca no Arquivo
+DB2 5DFA # Acc -= '0
+DB4 6DF5 # Acc *= 0x8
+DB6 9DF1 # BytePut = Acc
+DB8 8DF0 # Acc = BytePut
+DBA 5DF1 # Acc -= ByteAux
+DBC 9DF0 # BytePut = Acc
+DBE 7DF4 # Acc /= 0x04
+DC0 4DFA # Acc += '0
+DC2 E101 # Coloca no Arquivo
+DC4 5DFA # Acc -= '0
+DC6 6DF4 # Acc *= 0x04
+DC8 9DF1 # BytePut = Acc
+DCA 8DF0 # Acc = BytePut
+DCC 5DF1 # Acc -= ByteAux
+DCE 9DF0 # BytePut = Acc
+DD0 7DF3 # Acc /= 0x02
+DD2 4DFA # Acc += '0
+DD4 E101 # Coloca no Arquivo
+DD6 5DFA # Acc -= '0
+DD8 6DF3 # Acc *= 0x02
+DDA 9DF1 # BytePut = Acc
+DDC 8DF0 # Acc = BytePut
+DDE 5DF1 # Acc -= BytePut
+DE0 9DF0 # BytePut = Acc
+DE2 4DFA # Acc += '30'
+DE4 E101 # Coloca no Arquivo
+DE6 BD60 # Retorno
+DF0 0000 # BytePut e ByteAux
+DF2 0102 # 1 e 2
+DF4 0408 # 4 e 8
+DF6 1020 # 16 e 32
+DF8 4080 # 64 e 128
+DFA 3000 # '0'
+DFC 2E00 # Tamanho (SETAR ANTES DE RODAR) e contador
+DFE 0110 # EnderecoInicial[] (SETAR ANTES DE RODAR)

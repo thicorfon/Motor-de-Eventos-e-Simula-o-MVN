@@ -1,0 +1,82 @@
+000
+000 D200 # Zera o cursor de entrada
+002 A044 # Chama CARREGAR BYTE
+004 4095 # Acc += 0x90
+006 901A # Store[0] = Acc
+008 5095 # Acc -= 0x90
+00A 409E # Acc += 0x10
+00C 9028 # Jump[0] = Acc
+00E A044 # Chama CARREGAR BYTE
+010 901B # Store[1] = Acc
+012 9029 # Jump[1] = Acc
+014 A044 # Chama CARREGAR BYTE
+016 9094 # Tamanho = Acc
+018 A044 # Chama CARREGAR BYTE
+01A 9000 # Store[] -- Contem a instrucao do proximo store
+01C A038 # Chama CARREGAR PROXIMO STORE
+01E 409A # Acc += 1
+020 A02C # Chama GRAVAR PROXIMO STORE
+022 8094 # Acc = Contador
+024 509A # Acc -= 1
+026 9094 # Contador = Acc
+028 1000 # Jump[] -- Contem a instrução de jump para o inicio do programa, caso Contador == 0
+02A 0018 # Grava proximo byte
+02C GRAVAR PROXIMO STORE --- Faz Store[] = Acc
+02E 901B # Store[1] = Acc
+030 709E # Acc/10
+032 709E # Acc/10
+034 901A # Store[0] = Acc
+036 B02C # Retorno	
+038 CARREGAR PROXIMO STORE --- Faz Acc = Store[]
+03A 801A # Store[0] = Acc
+03C 609E # Acc *10
+03E 609E # Acc *10
+040 401B # Store[1] += Acc
+042 B038 # Retorno		
+044 CARREGAR BYTE --- Carrega o proximo byte no arquivo binario no acumulador e o grava em Montador
+046 D100 # Acc = Proximo caraceter
+048 5098 # Acc - '0'
+04A 60A1 # Acc *= 128 (shift 8)
+04C 9097 # Montador = Acc
+04E D100 # Acc - Proximo 
+050 5098 # Acc - '0'
+052 60A0 # Acc *= 64
+054 4097 # Acc += Montador
+056 9097 # Montador = Acc
+058 D100 # Repete-se o processo
+05A 5098 
+05C 609F # Acc *=32
+05E 4097
+060 9097
+062 D100
+064 5098
+066 609E # Acc *= 16
+068 4097
+06A 9097
+06C D100
+06E 5098
+070 609D # Acc *= 8
+072 4097
+074 9097
+076 D100
+078 5098
+07A 609C # Acc *= 4
+07C 4097
+07E 9097
+080 D100
+082 5098
+084 609B # Acc *= 2
+086 4097
+088 9097
+08A D100
+08C 5098
+08E 4097
+090 9097
+092 B044 # Retorno
+094 0090 # Contador e 90
+096 0000 # ByteEnd e Montador
+098 3031 # '0' e '1'
+09A 0102 # 1 e 2
+09C 0408 # 4 e 8
+09E 1020 # 16 e 32
+0A0 4080 # 64 e 128

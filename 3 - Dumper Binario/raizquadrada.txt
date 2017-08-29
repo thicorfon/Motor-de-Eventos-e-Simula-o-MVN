@@ -1,0 +1,24 @@
+110
+110 8136 # Acc = 1
+112 913B # X = Acc = 1
+114 9138 # Impar = Acc = 1
+116 913A # N2 = Acc = 1
+118 813C # Acc = x2
+11A 513A # Acc = Acc - N2 = X2 - N2
+11C 2132 # Jump if N2>X2
+11E 1132 # Jump if X2 == N2
+120 813B # Acc = X
+122 4136 # Acc = Acc + 1 => Acc = X + 1
+124 913B # X = Acc
+126 8138 # Acc = Impar
+128 4137 # Acc = Acc + 2
+12A 9138 # Impar = Acc
+12C 413A # Acc = Acc + N2
+12E 913A # N2 = Acc
+130 0118 # Go to 018
+132 813B
+134 C134
+136 0102 # Um e Dois
+138 0001 # Impar e N
+13A 0000 # N2 e X
+13C 9100 # X2

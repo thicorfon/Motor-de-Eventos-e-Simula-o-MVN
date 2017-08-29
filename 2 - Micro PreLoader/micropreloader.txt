@@ -1,0 +1,80 @@
+EC2
+EC2 D200 # Zera o cursor de entrada
+EC4 3091 # Acc = 91 (SETAR O DIGITO MENOS SIGNIFICATIVO COM O DIGITO MAIS SIGNIFICATIVO DO ENDEREÇO INICIAL)
+EC6 9ED4 # Começa a montar a instrução de store inicial (Store[0] = Acc)
+EC8 3011 # Acc = 11 (SETAR O DIGITO MENOS SIGNIFICATIVO COM O DIGITO MAIS SIGNIFICATIVO DO ENDEREÇO INICIAL)
+ECA 9EE4 # Começa a montar o jump para o inicio do programa (Jump[0] = Acc)
+ECC 3010 # Acc = 10 (SETAR O BYTE MENOS SIGNIFICATIVOS COM O BYTE MENOS SIGNIFICATIVO DO ENDEREÇO)
+ECE 9ED5 # Store[1] = Acc
+ED0 9EE5 # Jump[1] = Acc
+ED2 AF00 # Chama CARREGAR BYTE
+ED4 9000 # Store[]
+ED6 AEF4 # Chama CARREGA PROXIMO STORE
+ED8 4FEA # Acc += 1
+EDA AEE8 # Chama GRAVAR PROXIMO STORE
+EDC 3000 # Acc = 0
+EDE 8FE4 # Acc = Contador
+EE0 5FEA # Acc -= 1
+EE2 9FE4 # Contador = Acc
+EE4 1000 # Jump[] (Se zero, vai para o inicio do programa carregado)
+EE6 0ED2 # Caso contrario, grava proximo byte
+EE8 GRAVAR PROXIMO STORE --- Faz Store[] = Acc
+EEA 9ED5 # Store[1] = Acc
+EEC 7FEE # Acc/10
+EEE 7FEE # Acc/10
+EF0 9ED4 # Store[0] = Acc
+EF2 BEE8 # Retorno	
+EF4 CARREGAR PROXIMO STORE --- Faz Acc = Store[]
+EF6 8ED4 # Acc = Store[1]
+EF8 6FEE # Acc *10
+EFA 6FEE # Acc *10
+EFC 4ED5 # Acc += Store [0]
+EFE BEF4 # Retorno		
+F00 CARREGAR BYTE --- Carrega o proximo byte no arquivo binario no acumulador e o grava em Montador
+F02 D100 # Acc = Proximo caracter
+F04 5FE8 # Acc - '0'
+F06 6FF1 # Acc *= 128 (shift 8)
+F08 9FE7 # Montador = Acc
+F0A D100 # Acc - Proximo caracter
+F0C 5FE8 # Acc - '0'
+F0E 6FF0 # Acc *= 64
+F10 4FE7 # Acc += Montador
+F12 9FE7 * Montador = Acc
+F14 D100 # Repete-se o processo
+F16 5FE8
+F18 6FEF # Acc *=32
+F1A 4FE7
+F1C 9FE7
+F1E D100
+F20 5FE8
+F22 6FEE # Acc *= 16
+F24 4FE7
+F26 9FE7
+F28 D100
+F2A 5FE8
+F2C 6FED # Acc *= 8
+F2E 4FE7
+F30 9FE7
+F32 D100
+F34 5FE8
+F36 6FEC # Acc *= 4
+F38 4FE7
+F3A 9FE7
+F3C D100
+F3E 5FE8
+F40 6FEB # Acc *= 2
+F42 4FE7
+F44 9FE7
+F46 D100 # Carrega o caracter
+F48 5FE8 # Acc - '0'
+F4A 4FE7 # Acc += Montador
+F4C 9FE7 # Montador = Acc
+F4E BF00 # Retorno
+FE2 0110 # Primeiro Endereco (SETAR)
+FE4 2E00 # Tamanho do Programa e Contador (SETAR)
+FE6 0000 # e Montador
+FE8 3031 # '0' e '1'
+FEA 0102 # 1 e 2
+FEC 0408 # 4 e 8
+FEE 1020 # 16 e 32
+FF0 4080 # 64 e 128

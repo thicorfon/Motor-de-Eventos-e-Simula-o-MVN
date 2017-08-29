@@ -1,0 +1,192 @@
+8(OOO) # Carrega o byte mais significativo do endereço inicial do programa
+9(BBB) # Grava o byte em BBB
+9(AAA) # Grava o byte no byte inicial do bloco
+A(EEE) # Coloca o byte no arquivo
+8(OOO+1) # Carrega o byte menos significativo do endereço inicial do programa
+9(AAA+1) # Grava o byte no endereço inicial do bloco
+9(BBB) # Grava o byte em BBB
+A(EEE) # Coloca o byte no arquivo
+
+(ZZZ) A(QQQ) # Chama subtração entre endereço final - endereço inicial do bloco
+A(SSS) # Carrega resultado da subtração
+2(YYY) # Se a subtração for negativa, encerra o programa
+5(LLL+1) # Acc -= 126
+2(TTT) # Se Acc < 0
+307F # Carrega 127
+9(FFF) # Grava o tamanho do bloco
+0(VVV)
+(TTT) A(SSS) # Carrega resultado da subtração
+4(HHH) # Soma 1
+9(FFF) # Grava tamanho do bloco
+(VVV) 300D # Carrega o "Carriage Return"
+E110 # Coloca no arquivo
+300A # Carrega o "New Line Feed"
+E110 # Coloca no arquivo
+A(PPP) # Carrega bloco no arquivo
+8(AAA)
+6(KKK)
+6(KKK)
+4(AAA+1) # Carrega o endereço inicial do bloco
+4(FFF) # Soma com o tamanho do ultimo arquivo
+9(AAA+1) # Grava o byte menos significativo do endereço inicial do bloco
+7(KKK)
+7(KKK)
+9(AAA) # Grava o byte menos significativo do endereço inicial do bloco
+0(ZZZ)
+(YYY) C(YYY)
+
+
+
+
+(QQQ) Subtração 2 bytes (Endereço final - Endereço inicial do bloco e grava em RRR)
+8(NNN+1) # Carrega o byte menos significativo do endereço final
+5(AAA+1) # Subtrai com o byte menos significativo do endereço inicial do bloco
+9(RRR+1) # Armazena o resultado em (RRR+1)
+7(KKK) # Acc /= 10;
+7(KKK) # Acc /= 10;
+9(RRR) # Armazena o carry em (RRR)
+8(NNN) # Carrega o byte mais significativo do endereço final
+4(RRR) # Soma o carry
+5(AAA) # Subtrai com o byte mais significativo do endereço final do bloco
+9(RRR) # Armazena em RRR o byte mais significativo
+B(QQQ) 
+
+(SSS) Carrega RRR
+8(RRR)
+6(KKK)
+6(KKK)
+4(RRR+1)
+B(SSS) 
+
+
+
+
+(PPP)  Carrega bloco no arquivo 
+3000 # Carrega 0
+9(UUU) # Coloca 0 no checksum
+9(FFF+1) # Zera o contador
+8(AAA) # Carrega o primeiro byte do endereço inicial do bloco
+9(BBB) # Grava o byte em BBB
+4(CCC+1) # Soma 80 para montar a instrução de load inicial
+9(DDD) # Começa a montar a instrução de load inicial
+A(EEE) # Coloca o byte no arquivo
+8(AAA+1) # Carrega o segundo byte do endereço inicial do bloco
+9(BBB) # Grava o byte em BBB
+9(DDD+1) # Termina de montar o load inicial
+A(EEE) # Coloca no arquivo
+8(FFF) # Carrega o byte do tamanho do bloco
+9(BBB) # Grava o byte em BBB
+A(EEE) # Coloca no arquivo
+(DDD) 0000 # Load proximo byte do bloco
+9(BBB) # Grava o byte em BBB
+4(UUU) # Soma com o checksum
+9(UUU) # Grava o checksum
+A(EEE) # Coloca no arquivo
+A(GGG) # Carrega o proximo load
+4(HHH) # Soma 1
+A(III) # Grava o proximo load
+8(FFF+1)
+4(HHH) # Soma 1
+9(FFF+1)
+5(FFF) # Subtrai tamanho do bloco
+2(DDD) # Se negativo, o bloco não acabou
+8(UUU) # Carrega o checksum
+9(BBB) # Coloca o checksum em BBB
+A(EEE) # Coloca o checksum no arquivo
+B(PPP) # Fim de gravação do bloco
+
+(III) Store proximo load (o proximo load está no endereço JJJ e JJJ+1 e o acumulador deve conter o proximo load)
+9(DDD+1) # Grava o byte menos significativo do store
+7(KKK) # Acc/10
+7(KKK) # Acc/10
+9(DDD) # Grava o byte mais significativo
+B(III) # Retorno
+
+(GGG) Load proximo load (carrega no acumulador o proximo load)
+8(DDD) # Carrega o byte mais significativo
+6(KKK) # Acc *10
+6(KKK) # Acc *10
+4(DDD+1) # Soma com o byte menos significativo
+B(GGG) # Retorno
+
+(EEE) Put Byte. Colocar o byte a ser carregado na posição de memoria AAA. Reservar Posições AAA+1 - FFF
+8(BBB) # Carrega Byte para ser colocado
+7(CCC+1) # Acc /= 128
+4(LLL) # Soma 30 para montar o caracter ASCII
+E110 # Coloca no arquivo
+5(LLL) # Subtrai 30 para ter de novo o bit
+6(CCC+1) # Multiplica por 128
+9(BBB+1) # Grava o byte auxiliar
+8(BBB) # Carrega o Byte novamente
+5(BBB+1) # Temos agora 0XXXXXXX
+9(BBB) # Grava 0XXXXXXX
+7(CCC) # Acc /= 64
+4(LLL) # Soma 30 para montar o caracter ASCIII
+E110 # Coloca no Arquivo
+5(LLL) # Subtrai 30 para ter de novo o bit
+6(CCC) # Multiplica por 64
+9(BBB+1) # Grava o byte auxiliar
+8(BBB) # Carrega o Byte novamente
+5(BBB+1) # Temos agora 00XXXXXX
+9(BBB) # Grava 00XXXXXX
+7(KKK+1) # Acc /= 32
+4(LLL) # Soma 30 para montar o caracter ASCIII
+E110 # Coloca no Arquivo
+5(LLL) # Subtrai 30 para ter de novo o bit
+6(KKK+1) # Multiplica por 32
+9(BBB+1) # Grava o byte auxiliar
+8(BBB) # Carrega o Byte novamente
+5(BBB+1) # Temos agora 000XXXXX
+9(BBB) # Grava 000XXXXX
+7(KKK) # Acc /= 16
+4(LLL) # Soma 30 para montar o caracter ASCIII
+E110 # Coloca no Arquivo
+5(LLL) # Subtrai 30 para ter de novo o bit
+6(KKK) # Multiplica por 16
+9(BBB+1) # Grava o byte auxiliar
+8(BBB) # Carrega o Byte novamente
+5(BBB+1) # Temos agora 0000XXXX
+9(BBB) # Grava 0000XXXX
+7(MMM+1) # Acc /= 8
+4(LLL) # Soma 30 para montar o caracter ASCIII
+E110 # Coloca no Arquivo
+5(LLL) # Subtrai 30 para ter de novo o bit
+6(MMM+1) # Multiplica por 8
+9(BBB+1) # Grava o byte auxiliar
+8(BBB) # Carrega o Byte novamente
+5(BBB+1) # Temos agora 00000XXX
+9(BBB) # Grava 00000XXX
+7(MMM) # Acc /= 4
+4(LLL) # Soma 30 para montar o caracter ASCIII
+E110 # Coloca no Arquivo
+5(LLL) # Subtrai 30 para ter de novo o bit
+6(MMM) # Multiplica por 4
+9(BBB+1) # Grava o byte auxiliar
+8(BBB) # Carrega o Byte novamente
+5(BBB+1) # Temos agora 000000XX
+9(BBB) # Grava 000000XX
+7(HHH+1) # Acc /= 2
+4(LLL) # Soma 30 para montar o caracter ASCIII
+E110 # Coloca no Arquivo
+5(LLL) # Subtrai 30 para ter de novo o bit
+6(HHH+1) # Multiplica por 64
+9(BBB+1) # Grava o byte auxiliar
+8(BBB) # Carrega o Byte novamente
+5(BBB+1) # Temos agora 0000000X
+9(BBB) # Grava 0000000X
+4(LLL) # Soma 30 para montar o caracter ASCIII
+E110 # Coloca no Arquivo
+B(EEE)
+
+(BBB) 0000 # Byte para ser colocado e Byte auxiliar
+(HHH) 0102 # 1 e 2
+(MMM) 0408 # 4 e 8
+(KKK) 1020 # 16 e 32
+(CCC) 4080 # 64 e 128
+(LLL) 307E # '0' e 126
+(FFF) C600 # Tamanho do bloco e contador
+(AAA) 0F00 # Endereço inicial do bloco
+(OOO) 0000 # Endereço inicial do programa
+(NNN) 0000 # Endereço final do programa	
+(RRR) 0000 # Resultado da Subtração
+(UUU) 0000 # Checksum

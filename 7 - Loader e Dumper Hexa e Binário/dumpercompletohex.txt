@@ -1,0 +1,223 @@
+A00
+A00 8BBA # Acc = FlagHex
+A02 1A08 # Se 0, dumper binario
+A04 3048 # Acc = 'H'
+A06 0A0A
+A08 3042 # Acc = 'B'
+A0A E110
+A0C 8BB0 # Carrega o byte mais significativo do endereço inicial do programa
+A0E 9BA0 # Grava o byte em BBB
+A10 9BAE # Grava o byte no byte inicial do bloco
+A12 AB92 # Coloca o byte no arquivo
+A14 8BB1 # Carrega o byte menos significativo do endereço inicial do programa
+A16 9BAF # Grava o byte no endereço inicial do bloco
+A18 9BA0 # Grava o byte em BBB
+A1A AB92 # Coloca o byte no arquivo
+A1C AA52 # Chama subtração entre endereço final - endereço inicial do bloco
+A1E AA6A # Carrega resultado da subtração
+A20 2A50 # Se a subtração for negativa, encerra o programa
+A22 5BAB # Acc -= 126
+A24 2A2C # Se Acc < 0
+A26 307F # Carrega 127
+A28 9BAC # Grava o tamanho do bloco
+A2A 0A32
+A2C AA6A # Carrega resultado da subtração
+A2E 4BA2 # Soma 1
+A30 9BAC # Grava tamanho do bloco
+A32 300D # Carrega o "Carriage Return"
+A34 E110 # Coloca no arquivo
+A36 300A # Carrega o "New Line Feed"
+A38 E110 # Coloca no arquivo
+A3A AA76 # Carrega bloco no arquivo
+A3C 8BAE
+A3E 6BA6
+A40 6BA6
+A42 4BAF # Carrega o endereço inicial do bloco
+A44 4BAC # Soma com o tamanho do ultimo arquivo
+A46 9BAF # Grava o byte menos significativo do endereço inicial do bloco
+A48 7BA6
+A4A 7BA6
+A4C 9BAE # Grava o byte menos significativo do endereço inicial do bloco
+A4E 0A1C
+A50 CA50
+A52 Subtração 2 bytes (Endereço final - Endereço inicial do bloco e grava em RRR)
+A54 8BB3 # Carrega o byte menos significativo do endereço final
+A56 5BAF # Subtrai com o byte menos significativo do endereço inicial do bloco
+A58 9BB5 # Armazena o resultado em BB5
+A5A 7BA6 # Acc /= 10;
+A5C 7BA6 # Acc /= 10;
+A5E 9BB4 # Armazena o carry em BB4
+A60 8BB2 # Carrega o byte mais significativo do endereço final
+A62 4BB4 # Soma o carry
+A64 5BAE # Subtrai com o byte mais significativo do endereço final do bloco
+A66 9BB4 # Armazena em RRR o byte mais significativo
+A68 BA52 
+A6A Carrega RRR
+A6C 8BB4
+A6E 6BA6
+A70 6BA6
+A72 4BB5
+A74 BA6A
+A76  Carrega bloco no arquivo 
+A78 3000 # Carrega 0
+A7A 9BB6 # Coloca 0 no checksum
+A7C 9BAD # Zera o contador
+A7E 8BAE # Carrega o primeiro byte do endereço inicial do bloco
+A80 9BA0 # Grava o byte em BBB
+A82 4BA9 # Soma 80 para montar a instrução de load inicial
+A84 9A96 # Começa a montar a instrução de load inicial
+A86 AB92 # Coloca o byte no arquivo
+A88 8BAF # Carrega o segundo byte do endereço inicial do bloco
+A8A 9BA0 # Grava o byte em BBB
+A8C 9A97 # Termina de montar o load inicial
+A8E AB92 # Coloca no arquivo
+A90 8BAC # Carrega o byte do tamanho do bloco
+A92 9BA0 # Grava o byte em BBB
+A94 AB92 # Coloca no arquivo
+A96 0000 # Load proximo byte do bloco
+A98 9BA0 # Grava o byte em BBB
+A9A 4BB6 # Soma com o checksum
+A9C 9BB6 # Grava o checksum
+A9E AB92 # Coloca no arquivo
+AA0 AAC4 # Carrega o proximo load
+AA2 4BA2 # Soma 1
+AA4 AAB8 # Grava o proximo load
+AA6 8BAD
+AA8 4BA2 # Soma 1
+AAA 9BAD
+AAC 5BAC # Subtrai tamanho do bloco
+AAE 2A96 # Se negativo, o bloco não acabou
+AB0 8BB6 # Carrega o checksum
+AB2 9BA0 # Coloca o checksum em BBB
+AB4 AB92 # Coloca o checksum no arquivo
+AB6 BA76 # Fim de gravação do bloco
+AB8 Store proximo load (o proximo load está no endereço JJJ e JJJ+1 e o acumulador deve conter o proximo load)
+ABA 9A97 # Grava o byte menos significativo do store
+ABC 7BA6 # Acc/10
+ABE 7BA6 # Acc/10
+AC0 9A96 # Grava o byte mais significativo
+AC2 BAB8 # Retorno
+AC4 Load proximo load (carrega no acumulador o proximo load)
+AC6 8A96 # Carrega o byte mais significativo
+AC8 6BA6 # Acc *10
+ACA 6BA6 # Acc *10
+ACC 4A97 # Soma com o byte menos significativo
+ACE BAC4 # Retorno
+AD0 Put Byte Binario. Colocar o byte a ser carregado na posição de memoria AAA. Reservar Posições AAA+1 - FFF
+AD2 8BA0 # Carrega Byte para ser colocado
+AD4 7BA9 # Acc /= 128
+AD6 4BAA # Soma 30 para montar o caracter ASCII
+AD8 E110 # Coloca no arquivo
+ADA 5BAA # Subtrai 30 para ter de novo o bit
+ADC 6BA9 # Multiplica por 128
+ADE 9BA1 # Grava o byte auxiliar
+AE0 8BA0 # Carrega o Byte novamente
+AE2 5BA1 # Temos agora 0XXXXXXX
+AE4 9BA0 # Grava 0XXXXXXX
+AE6 7BA8 # Acc /= 64
+AE8 4BAA # Soma 30 para montar o caracter ASCIII
+AEA E110 # Coloca no Arquivo
+AEC 5BAA # Subtrai 30 para ter de novo o bit
+AEE 6BA8 # Multiplica por 64
+AF0 9BA1 # Grava o byte auxiliar
+AF2 8BA0 # Carrega o Byte novamente
+AF4 5BA1 # Temos agora 00XXXXXX
+AF6 9BA0 # Grava 00XXXXXX
+AF8 7BA7 # Acc /= 32
+AFA 4BAA # Soma 30 para montar o caracter ASCIII
+AFC E110 # Coloca no Arquivo
+AFE 5BAA # Subtrai 30 para ter de novo o bit
+B00 6BA7 # Multiplica por 32
+B02 9BA1 # Grava o byte auxiliar
+B04 8BA0 # Carrega o Byte novamente
+B06 5BA1 # Temos agora 000XXXXX
+B08 9BA0 # Grava 000XXXXX
+B0A 7BA6 # Acc /= 16
+B0C 4BAA # Soma 30 para montar o caracter ASCIII
+B0E E110 # Coloca no Arquivo
+B10 5BAA # Subtrai 30 para ter de novo o bit
+B12 6BA6 # Multiplica por 16
+B14 9BA1 # Grava o byte auxiliar
+B16 8BA0 # Carrega o Byte novamente
+B18 5BA1 # Temos agora 0000XXXX
+B1A 9BA0 # Grava 0000XXXX
+B1C 7BA5 # Acc /= 8
+B1E 4BAA # Soma 30 para montar o caracter ASCIII
+B20 E110 # Coloca no Arquivo
+B22 5BAA # Subtrai 30 para ter de novo o bit
+B24 6BA5 # Multiplica por 8
+B26 9BA1 # Grava o byte auxiliar
+B28 8BA0 # Carrega o Byte novamente
+B2A 5BA1 # Temos agora 00000XXX
+B2C 9BA0 # Grava 00000XXX
+B2E 7BA4 # Acc /= 4
+B30 4BAA # Soma 30 para montar o caracter ASCIII
+B32 E110 # Coloca no Arquivo
+B34 5BAA # Subtrai 30 para ter de novo o bit
+B36 6BA4 # Multiplica por 4
+B38 9BA1 # Grava o byte auxiliar
+B3A 8BA0 # Carrega o Byte novamente
+B3C 5BA1 # Temos agora 000000XX
+B3E 9BA0 # Grava 000000XX
+B40 7BA3 # Acc /= 2
+B42 4BAA # Soma 30 para montar o caracter ASCIII
+B44 E110 # Coloca no Arquivo
+B46 5BAA # Subtrai 30 para ter de novo o bit
+B48 6BA3 # Multiplica por 64
+B4A 9BA1 # Grava o byte auxiliar
+B4C 8BA0 # Carrega o Byte novamente
+B4E 5BA1 # Temos agora 0000000X
+B50 9BA0 # Grava 0000000X
+B52 4BAA # Soma 30 para montar o caracter ASCIII
+B54 E110 # Coloca no Arquivo
+B56 BAD0
+B58 PUT BYTE HEX
+B5A 8BA0 # Acc = BytePut
+B5C 7BA6 # Acc /= 10
+B5E 9BA1 # ByteAux = Acc
+B60 5BB7 # Acc -= A
+B62 2B6C # Se negativo, Acc < 0xA.
+B64 8BA1 # Acc = ByteAux
+B66 4BB8 # Acc += 0x37
+B68 E110 # Coloca no Arquivo
+B6A 0B72
+B6C 8BA1 # Acc = ByteAux
+B6E 4BB9 # Acc += 0x30
+B70 E110
+B72 8BA1 # Acc = ByteAux
+B74 6BA6 # Acc *= 0x10
+B76 9BA1 # ByteAux = Acc
+B78 8BA0 # Acc = BytePut
+B7A 5BA1 # Acc -= ByteAux
+B7C 9BA1 # ByteAux = Acc
+B7E 5BB7 # Acc -= A
+B80 2B8A # Se negativo, Acc < 0xA
+B82 8BA1 # Acc = ByteAux
+B84 4BB8 # Acc += 0x37
+B86 E110 # Coloca no Arquivo
+B88 BB58 # Retorno
+B8A 8BA1 # Acc = ByteAux
+B8C 4BB9 # Acc += 0x30
+B8E E110 # Coloca no Arquivo
+B90 BB58 # Retorno
+B92 PUT BYTE
+B94 8BBA # Acc = FlagHex
+B96 1B9C # Se 0, chamar PUT BYTE BINARIO
+B98 AB58 # Chama PUT BYTE HEX
+B9A BB92 # Retorno
+B9C AAD0
+B9E BB92 # Retorno
+BA0 0000 # Byte para ser colocado e Byte auxiliar
+BA2 0102 # 1 e 2
+BA4 0408 # 4 e 8
+BA6 1020 # 16 e 32
+BA8 4080 # 64 e 128
+BAA 307E # '0' e 126
+BAC 0000 # Tamanho do bloco e contador
+BAE 0F00 # Endereço inicial do bloco
+BB0 0E00 # Endereço inicial do programa
+BB2 0F0B # Endereço final do programa	
+BB4 0000 # Resultado da Subtração
+BB6 000A # Checksum e 0xA
+BB8 3730 # 0x37 e 0x30
+BBA 0100 # FlagHex (0 para B e 1 para H)

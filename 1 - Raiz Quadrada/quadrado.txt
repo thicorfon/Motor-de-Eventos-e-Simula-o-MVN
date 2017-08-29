@@ -1,0 +1,6 @@
+010
+010 8050 # Acc = N
+012 6050 # Acc = Acc*N
+014 9051 # N2 = Acc
+016 C016 # Encerra o programa
+050 A100 # N e N2

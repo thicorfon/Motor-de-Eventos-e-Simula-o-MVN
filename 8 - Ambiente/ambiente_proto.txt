@@ -1,0 +1,277 @@
+﻿(444)
+(444) 304F # Acc = 'O'
+E000
+303A # Acc = ':'
+E000
+D300
+D400
+5(PPP) # Acc -= '0'
+1(333) # Se 0, chama LOADER MEMORIA
+A(RRR) 
+0(444)
+(333) A(OOO)
+0(444)
+
+
+(RRR) MOSTRAR MEMORIA
+A(CCC) # Chama IMPRIMIR "E:"
+D300 # Carrega no buffer o próximo byte
+A(TTT) # Chama CARREGAR BYTE HEX
+9(SSS) # EnderecoInicial[0] = Acc
+A(CCC) # Chama IMPRIMRIR "E:"
+D300 # Carrega no buffer o proximo byte
+A(TTT) # Chama CARREGAR BYTE HEX
+9(SSS+1) # EnderecoInicial[1] = Acc
+A(CCC)
+D300
+A(TTT)
+9(###) # EnderecoFinal[0] = Acc
+A(CCC)
+D300
+A(TTT)
+9(###+1) # EnderecoFinal[1] = Acc
+A(&&&) # Chama IMPRIMIR LINHA_INICIAL
+(§§§) A(+++) # Chama IMPRIMIR LINHA
+A(777)
+A(___) # Chama ATUALIZAR ENDERECO E CARREGA SUBTRACAO
+4(BBB+1) # Acc += 1
+5(BBB) # Acc -= 0x10
+2(111)
+0(§§§) 
+(111) 0(444) # Retorno 
+
+
+(___) ATUALIZAR ENDERECO E CARREGA SUBTRACAO
+8(SSS) # Acc = EnderecoInicial[0]
+6(BBB) # Acc *= 10
+6(BBB) # Acc *= 10
+4(SSS+1) # Acc += EnderecoInicial[1]
+4(BBB) # Acc += 10
+9(SSS+1) # EnderecoInicial[1] = Acc[1]
+7(BBB) # Acc /= 10
+7(BBB) # Acc /= 10
+9(SSS) # EnderecoInicial[0] = Acc[0]
+8(###+1) # Acc = EnderecoFinal[1]
+5(SSS+1) # Acc -= EnderecoInicial[1]
+9(===+1) # Resto[1] = Acc
+7(BBB) # Acc /= 10
+7(BBB) # Acc /= 10
+4(###) # Acc += EnderecoFinal[0]
+5(SSS) # Acc -= EnderecoInicial[0]
+6(BBB) # Acc *= 10
+6(BBB) # Acc *= 10
+4(===+1) # Acc += Resto[1]
+B(___)
+
+
+
+(OOO) LOADER MEMORIA
+(DDD) A(CCC) # Chama IMPRIMIR "E:"
+D300 # Carrega no buffer o próximo byte
+A(TTT) # Chama CARREGAR BYTE HEX
+9(!!!) # Jump[0] = Acc
+4(xxx+1) # Acc += 0x90
+9(JJJ) # ProxStore[0] = Acc
+A(CCC) # Chama IMPRIMIR "E:"
+D300 # Carrega no buffer o próximo byte
+A(TTT) # Chama CARREGAR BYTE HEX
+9(!!!+1) # Jump[1] = Acc
+9(JJJ+1) # ProxStore[1] = Acc
+(FFF) A(GGG) 
+D300
+A(TTT) # Chama CARREGAR BYTE HEX
+(JJJ) 9000 # ProxStore[]
+A(KKK) # Chama CARREGAR PROXIMO STORE
+4(BBB+1) # Acc += 1
+A(MMM) # Chama GRAVAR PROXIMO STORE
+0(FFF)
+(!!!) 0(DDD) # Pula para o início do programa carregado (Jump[])
+(QQQ) B(OOO) # Retorno
+
+
+(&&&) IMPRIMIR LINHA INICIAL
+3030
+9(***+1) # Jump[1] = 0
+A(%%%)
+A(%%%)
+A(%%%)
+A(%%%)
+(///)A(%%%)
+A(%%%)
+A(%%%)
+A(%%%)
+(***)3030 # Acc = '0' (Print[])
+E000
+8(***+1) 
+5(WWW+1) # Acc -= '9'
+1(???) # Se Acc == 9
+8(***+1) # Acc = Print[1]
+4(BBB+1) # Acc += 1
+9(***+1) # Print[1] = Acc
+5(>>>) # Acc -= 'G'
+2(///) # Se negativo, pular para \\\
+0(<<<)
+(???) 3041
+9(***+1) # Print[1] = Acc
+0(///)
+(<<<) A(777)
+B(&&&)
+ 
+(+++) IMPRIMIR LINHA
+3010 # Acc = 0x10
+9(:::) # Contador = Acc
+8(SSS) # Acc = EnderecoInicial[0]
+9(HHH) # BytePut = Acc
+4(>>>+1) # Acc += 0x80
+9(---) # ProxLoad[] = 0
+A(LLL) # Chama PUT BYTE HEX
+8(SSS+1) # Acc = EnderecoInicial[1]
+9(HHH) # BytePut = Acc
+9(---+1) # ProxLoad[1] = Acc
+A(LLL) # Chama PUT BYTE HEX
+(¬¬¬) A(%%%)
+A(%%%)
+A(%%%)
+(---)8000 # ProxLoad[]
+9(HHH) # BytePut = Acc
+A(LLL) # Chama PUT BYTE HEX
+A(\\\) # Carregar ProxLoad[]
+4(BBB+1) # Acc += 1
+A(|||) # Gravar ProxLoad[]
+8(:::) # Acc = Contador
+5(BBB+1) # Acc -= 1
+9(:::) # Contador = Acc
+1(;;;) # Se 0, sai da subrotina
+0(¬¬¬)
+(;;;) B(+++)
+
+(GGG) Imprimir "ENDEREÇO:"
+8(JJJ) # Acc = ProxStore[0]
+5(XXX+1) # Acc -= 0x90
+9(HHH) # BytePut = Acc
+A(LLL) # Chama PUT BYTE HEX 
+8(JJJ+1) # Acc = ProxStore[1]
+9(HHH) # BytePut = Acc
+A(LLL) # Chama PUT BYTE HEX
+303A # Acc = ':'
+E000 # Imprime ':'
+B(GGG)
+
+(%%%) IMPRIMIR_ESPACO
+3020 # Acc = ' '
+E000
+B(%%%)
+
+(777) PULAR LINHA
+300D
+E000
+300A
+3000
+B(777)
+
+(CCC) IMPRIMIR "E:"
+3045 # Acc = 'E'
+E000 # Imprime 'E'
+303A # Acc = ':'
+E000 # Imprime ':'
+B(CCC) # Retorno 
+
+(MMM) GRAVAR PROXIMO STORE 
+9(JJJ+1) # Grava o byte menos signifacativo do store
+7(BBB) # Acc/10
+7(BBB) # Acc/10
+9(JJJ) # Grava o byte mais significativo
+B(MMM) # Retorno
+
+(KKK) CARREGAR PROXIMO STORE
+8(JJJ) # Carrega o byte mais significativo
+6(BBB) # Acc *10
+6(BBB) # Acc *10
+4(JJJ+1) # Soma com o byte menos significativo
+B(KKK) # Retorno	
+
+(|||) GRAVAR PROXIMO LOAD
+9(---+1) # Grava o byte menos signifacativo do store
+7(BBB) # Acc/10
+7(BBB) # Acc/10
+9(---) # Grava o byte mais significativo
+B(|||) # Retorno
+
+(\\\) CARREGAR PROXIMO LOAD
+8(---)
+6(BBB)
+6(BBB)
+4(---+1)
+B(\\\)
+
+(TTT) CARREGAR BYTE HEX (CHECA @ E >)
+D400
+9(EEE+1) # AuxHex = Acc
+5(AAA) # Acc -= '@'
+1(QQQ) # Se 0, pular para (QQQ)
+8(EEE+1) # Acc = AuxHex
+5(AAA+1) # Acc -= '>'
+1(!!!) # Se 0, pular para (!!!)
+8(EEE+1) # Acc = AuxHex
+5(PPP) # Acc -= '0'
+9(EEE+1) # AuxHex = Acc
+5(PPP+1) # Acc -= 0x11
+2(UUU) # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+4(XXX) # Acc += 0xA
+0(VVV) # Pula pra (VVV)
+(UUU) 8(EEE+1) # Acc += AuxHex
+(VVV) 6(BBB) # Acc *= 0x10
+9(eee) # Montador = Acc
+D400
+5(PPP) # Acc -= '0'
+9(EEE+1) AuxHex = Acc
+5(PPP+1) # Acc -= 0x11
+2(YYY) # Se negativo, o numero está entra 0 e 9. Se não, está entre A e F
+4(XXX) # Acc += 0xA
+0(ZZZ) # Pula para (ZZZ)
+(YYY) 8(EEE+1) # Acc = AuxHex
+(ZZZ) 4(eee) # Acc += Montador
+B(TTT)
+
+(LLL) PUT BYTE HEX
+8(HHH) # Acc = BytePut
+7(BBB) # Acc /= 10
+9(HHH+1) # ByteAux = Acc
+5(XXX) # Acc -= A
+2(III) # Se negativo, Acc < 0xA.
+8(HHH+1) # Acc = ByteAux
+4(WWW) # Acc += 0x37
+E000 # Coloca no Arquivo
+0(NNN)
+(III) 8(HHH+1) # Acc = ByteAux
+4(PPP) # Acc += 0x30
+E000
+(NNN) 8(HHH+1) # Acc = ByteAux
+6(BBB) # Acc *= 0x10
+9(HHH+1) # ByteAux = Acc
+8(HHH) # Acc = BytePut
+5(HHH+1) # Acc -= ByteAux
+9(HHH+1) # ByteAux = Acc
+5(XXX) # Acc -= A
+2(@@@) # Se negativo, Acc < 0xA
+8(HHH+1) # Acc = ByteAux
+4(WWW) # Acc += 0x37
+E000 # Coloca no Arquivo
+B(LLL) # Retorno
+(@@@) 8(HHH+1) # Acc = ByteAux
+4(PPP) # Acc += 0x30
+E000 # Coloca no Arquivo
+B(LLL) # Retorno
+
+(PPP) 3011 # '0' e ('A'-'0')
+(EEE) 0000 # Montador e AuxHex
+(XXX) 0A90 # 0xA e 0x90
+(BBB) 1001 # 16 e 1
+(AAA) 403E # '@' e '>'
+(HHH) 0000 # BytePut e ByteAux
+(WWW) 3739 # 0x37 e '9'
+(SSS) 0000 # EnderecoInicial[]
+(###) 0000 # EnderecoFinal[]
+(>>>) 4780 # 'G' e 0x80
+(:::) 0000 # Contador
+(===) 0000 # Resto[]
