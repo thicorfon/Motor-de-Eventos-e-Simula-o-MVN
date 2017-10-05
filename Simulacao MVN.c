@@ -194,10 +194,8 @@ void executar (MVN_t *MVN){ //Executa a instrucao
 
         case 0xC: // Halt Machine
             estado_maquina(MVN);
-            printf("Pressione enter para continuar\n");
-            char enter;
-            while (enter != '\r' && enter != '\n') { enter = getchar(); }
-            MVN->ci = MVN->arg;
+            printf("Pressione qualquer tecla para continuar\n");
+            getch();
         break;
 
         case 0xD: // Input
