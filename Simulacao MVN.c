@@ -640,31 +640,38 @@ void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acomp
             //estado_maquina(MVN);
         break;
 
-        case 'D':
-            decodificar(MVN);//Decodificar
-            //estado_maquina(MVN);
-            inserir_evento(head,'E',atual->next->tempo+1,atual->next->tarefa,false);
+        case 'N':
+        	fetch(MVN);
+        	decodificar(MVN);
+        	executar(MVN);
+        	inserir_evento(head,'N',atual->next->tempo+1,atual->next->tarefa,false);
         break;
 
-        case 'E': // Executar
-            executar(MVN);
-            //estado_maquina(MVN);
-            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
-            if (*acompanhamento == true){ //caso o acompanhamento passo a passo esteja ligado, pausa a simulacao.
-                menuDePausa(head,MVN,acompanhamento,fim);
-            }
-        break;
+        // case 'D':
+        //     decodificar(MVN);//Decodificar
+        //     //estado_maquina(MVN);
+        //     inserir_evento(head,'E',atual->next->tempo+1,atual->next->tarefa,false);
+        // break;
+
+        // case 'E': // Executar
+        //     executar(MVN);
+        //     //estado_maquina(MVN);
+        //     inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
+        //     if (*acompanhamento == true){ //caso o acompanhamento passo a passo esteja ligado, pausa a simulacao.
+        //         menuDePausa(head,MVN,acompanhamento,fim);
+        //     }
+        // break;
 
         case 'I'://Iniciar Programa
             iniciarPrograma(MVN);
-            inserir_evento(head,'F',atual->next->tempo+1, atual->next->tarefa,false);
+            inserir_evento(head,'N',atual->next->tempo, atual->next->tarefa,false);
         break;
 
-        case 'F': //Fetch
-            fetch(MVN);
-            //estado_maquina(MVN);
-            inserir_evento(head,'D',atual->next->tempo+1,atual->next->tarefa,false);
-        break;
+        // case 'F': //Fetch
+        //     fetch(MVN);
+        //     //estado_maquina(MVN);
+        //     inserir_evento(head,'D',atual->next->tempo+1,atual->next->tarefa,false);
+        // break;
 
         case 'P': //Print
             print_list(head);
@@ -677,6 +684,11 @@ void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acomp
         default:
             printf("\nEvento Invalido");
 
+
+    }
+
+    if (*acompanhamento == true){ //caso o acompanhamento passo a passo esteja ligado, pausa a simulacao.
+            menuDePausa(head,MVN,acompanhamento,fim);
     }
 
     /**Término da implementação**/
