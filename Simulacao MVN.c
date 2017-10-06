@@ -66,6 +66,28 @@ void menuDePausa(evento_t * listaDeEventos, MVN_t * MVN, bool *acompanhamento,bo
 
 /**Reacoes a eventos especificos referentes aos objetos simulados**/
 
+void inicializarMVN(MVN_t * MVN){
+    int i;
+    for (i = 0; i < MEM_TAM; i++){
+        MVN->memoria[i] = 0;
+    }
+    MVN->acc = 0;
+    MVN->ci = 0;
+    MVN->arg = 0;
+    MVN->instrucao = 0;
+    MVN->cursorEntrada = 0;
+    MVN->modoIndireto = false;
+
+    LinhaMapaDeProcessos_t linhaAtual;
+    for (i = 0; i < NUM_PROC; i++)
+    {
+        linhaAtual = MVN->MapaDeProcessos.linha[i];
+        linhaAtual.busy = false;
+        linhaAtual.enderecoFisicoOrigem = 0;
+        linhaAtual.idProcesso = 0;
+    }
+}
+
 void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de Instruções, Instrução realizada, Operando e o conteúdo na memória
     printf("\nO estado atual da maquina eh: ");
     printf("\nAcumulador: %04x",MVN->acc);
@@ -734,12 +756,7 @@ int main(){
 
     MVN_t * MVN;
     MVN = malloc(sizeof(MVN_t));
-    MVN->acc = 0;
-    MVN->ci = 0;
-    MVN->cursorEntrada = 0;
-    MVN->instrucao = 0;
-    MVN->arg = 0;
-    MVN->modoIndireto = false;
+    inicializarMVN(MVN);
 
     bool acompanhamento = false;
     bool fim = false;
