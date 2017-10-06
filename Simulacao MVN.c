@@ -87,9 +87,9 @@ void inicializarMVN(MVN_t * MVN){
         linhaAtual.idProcesso = 0;
     }
 
-    MVN->MapaDeProcessos.linha[1].busy = true;
+    /*MVN->MapaDeProcessos.linha[1].busy = true;
     MVN->MapaDeProcessos.linha[1].enderecoFisicoOrigem = 0x500;
-    MVN->MapaDeProcessos.linha[1].idProcesso = 3;
+    MVN->MapaDeProcessos.linha[1].idProcesso = 3;*/
 }
 
 void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de Instruções, Instrução realizada, Operando e o conteúdo na memória
@@ -144,7 +144,7 @@ void iniciarPrograma (MVN_t * MVN){ //Inicia a execucao do programa, perguntando
     }
 }
 
-void calcularEnderecoEfetivo(MVN_t* MVN){
+bool calcularEnderecoEfetivo(MVN_t* MVN){
     int i;
     int procId = MVN->arg/0x1000;
     LinhaMapaDeProcessos_t linhaAtual;
@@ -152,9 +152,10 @@ void calcularEnderecoEfetivo(MVN_t* MVN){
         linhaAtual = MVN->MapaDeProcessos.linha[i];
         if (linhaAtual.busy && linhaAtual.idProcesso == procId){
             MVN->arg = MVN->arg%0x1000 + linhaAtual.enderecoFisicoOrigem;
-            return;
+            return true;
         }
     }
+    return false;
 }
 
 void fetch (MVN_t *MVN){ // Armazena em MVN->instrucao a proxima instrucao a ser executada
@@ -164,17 +165,21 @@ void fetch (MVN_t *MVN){ // Armazena em MVN->instrucao a proxima instrucao a ser
 void decodificar(MVN_t *MVN){ //Separa a instrucao em instrucao e argumento
     uint16_t aux;
     uint16_t aux2;
+    bool processoEncontrado;
     aux = MVN->instrucao;
     aux2 = MVN->instrucao;
 
     MVN->instrucao = aux/0x1000;
     MVN->arg = (aux2 & 0x0FFF);
     if (MVN->modoIndireto){
-        printf("\n%x",MVN->arg);
+        //printf("\n%x",MVN->arg);
         MVN->arg = MVN->memoria[MVN->arg]*0x100 + MVN->memoria[MVN->arg+1];
-        printf("\n%x",MVN->arg);
-        calcularEnderecoEfetivo(MVN);
-        printf("\n%x",MVN->arg);
+        //printf("\n%x",MVN->arg);
+        processoEncontrado = calcularEnderecoEfetivo(MVN);
+        if (!processoEncontrado){
+            printf("\n\n************** PROCESSO NAO ENCONTRADO **************\n\n");
+        }
+        //printf("\n%x",MVN->arg);
         MVN->modoIndireto = false;
     }
 }
