@@ -514,7 +514,7 @@ void menuDePausa(evento_t * listaDeEventos, MVN_t * MVN, bool *acompanhamento,bo
         case '4':
             printf("\nDigite o tempo no qual uma pausa deva ser inserida:");
             int tempop;
-            scanf("%d",tempop);
+            scanf("%d",&tempop);
             inserir_evento(listaDeEventos,'S',tempop,0,false);
             menuDePausa(listaDeEventos,MVN,acompanhamento,fim);
         break;
