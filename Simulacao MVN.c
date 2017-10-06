@@ -86,6 +86,10 @@ void inicializarMVN(MVN_t * MVN){
         linhaAtual.enderecoFisicoOrigem = 0;
         linhaAtual.idProcesso = 0;
     }
+
+    MVN->MapaDeProcessos.linha[1].busy = true;
+    MVN->MapaDeProcessos.linha[1].enderecoFisicoOrigem = 0x500;
+    MVN->MapaDeProcessos.linha[1].idProcesso = 3;
 }
 
 void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de Instruções, Instrução realizada, Operando e o conteúdo na memória
@@ -166,8 +170,12 @@ void decodificar(MVN_t *MVN){ //Separa a instrucao em instrucao e argumento
     MVN->instrucao = aux/0x1000;
     MVN->arg = (aux2 & 0x0FFF);
     if (MVN->modoIndireto){
-        MVN->arg = MVN->memoria[MVN->arg];
+        printf("\n%x",MVN->arg);
+        MVN->arg = MVN->memoria[MVN->arg]*0x100 + MVN->memoria[MVN->arg+1];
+        printf("\n%x",MVN->arg);
         calcularEnderecoEfetivo(MVN);
+        printf("\n%x",MVN->arg);
+        MVN->modoIndireto = false;
     }
 }
 
