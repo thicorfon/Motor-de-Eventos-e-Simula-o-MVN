@@ -11,6 +11,7 @@
 typedef int bool; // or #define bool int
 
 #define MEM_TAM 0xFFF //definicao do tamanho da memoria. Caso se necessite de um espaco de memoria menor, recomenda-se diminuir este espaco para facilitar a visualizacao da maquina
+#define NUM_PROC 0x10
 
 #endif
 
@@ -34,8 +35,17 @@ typedef struct evento{ //Definicao do evento e seus parametros relevantes
 
 /**Definição dos objetos a serem simulados**/
 
-typedef struct MVN{
+typedef struct LinhaMapaDeProcessos{
+    int idProcesso;
+    uint16_t enderecoFisicoOrigem;
+    bool busy;
+}LinhaMapaDeProcessos_t;
 
+typedef struct MapaDeProcessos{
+    LinhaMapaDeProcessos_t linha[NUM_PROC];
+}MapaDeProcessos_t;
+
+typedef struct MVN{
     uint8_t memoria[MEM_TAM]; //memoria
     uint16_t acc; //acumulador
     uint16_t ci;  //contador de instrucoes
@@ -43,7 +53,10 @@ typedef struct MVN{
     uint16_t instrucao; //instrucao a ser executada
     char buffer[2];
     long cursorEntrada;
+    bool modoIndireto;
+    MapaDeProcessos_t MapaDeProcessos;
 }MVN_t;
+
 
 /**Declaracao de funcoes**/
 
@@ -105,6 +118,19 @@ void iniciarPrograma (MVN_t * MVN){ //Inicia a execucao do programa, perguntando
     }
 }
 
+void calcularEnderecoEfetivo(MVN_t* MVN){
+    int i;
+    int procId = MVN->arg/0x1000;
+    LinhaMapaDeProcessos_t linhaAtual;
+    for (i=0;i<NUM_PROC;i++){
+        linhaAtual = MVN->MapaDeProcessos.linha[i];
+        if (linhaAtual.busy && linhaAtual.idProcesso == procId){
+            MVN->arg = MVN->arg%0x1000 + linhaAtual.enderecoFisicoOrigem;
+            return;
+        }
+    }
+}
+
 void fetch (MVN_t *MVN){ // Armazena em MVN->instrucao a proxima instrucao a ser executada
     MVN->instrucao = MVN->memoria[MVN->ci]*0x100 + MVN->memoria[MVN->ci+1];
 }
@@ -117,6 +143,10 @@ void decodificar(MVN_t *MVN){ //Separa a instrucao em instrucao e argumento
 
     MVN->instrucao = aux/0x1000;
     MVN->arg = (aux2 & 0x0FFF);
+    if (MVN->modoIndireto){
+        MVN->arg = MVN->memoria[MVN->arg];
+        calcularEnderecoEfetivo(MVN);
+    }
 }
 
 void executar (MVN_t *MVN){ //Executa a instrucao
@@ -124,7 +154,7 @@ void executar (MVN_t *MVN){ //Executa a instrucao
     FILE *fp;
     char arquivo [100];
     char numero[5];
-                        char byte[2];
+    char byte[2];
 
     switch(MVN->instrucao){
         case 0x0: // Jump Incoditional
@@ -188,8 +218,9 @@ void executar (MVN_t *MVN){ //Executa a instrucao
             MVN->ci = MVN->arg + 2;
         break;
 
-        case 0xB: // Return from Subroutine
-            MVN->ci = MVN->memoria[MVN->arg]*0x100 + MVN->memoria[MVN->arg + 1];
+        case 0xB: // Entrar Modo Indireto
+            MVN->modoIndireto = true;
+            MVN->ci = MVN->ci +2;
         break;
 
         case 0xC: // Halt Machine
@@ -708,6 +739,7 @@ int main(){
     MVN->cursorEntrada = 0;
     MVN->instrucao = 0;
     MVN->arg = 0;
+    MVN->modoIndireto = false;
 
     bool acompanhamento = false;
     bool fim = false;
