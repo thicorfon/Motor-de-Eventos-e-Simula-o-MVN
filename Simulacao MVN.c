@@ -10,7 +10,7 @@
 #define true 1
 typedef int bool; // or #define bool int
 
-#define MEM_TAM 0xFFF //definicao do tamanho da memoria. Caso se necessite de um espaco de memoria menor, recomenda-se diminuir este espaco para facilitar a visualizacao da maquina
+#define MEM_TAM 0xFFFF //definicao do tamanho da memoria. Caso se necessite de um espaco de memoria menor, recomenda-se diminuir este espaco para facilitar a visualizacao da maquina
 #define NUM_PROC 0x10
 
 #endif
@@ -92,20 +92,39 @@ void inicializarMVN(MVN_t * MVN){
     MVN->MapaDeProcessos.linha[1].idProcesso = 3;*/
 }
 
+void imprimirMemoria(MVN_t* MVN, int inicio, int fim){
+        printf("\nMemoria:");
+        int i;
+        printf("\n      %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x",0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15);
+        for (i = inicio; i<fim; i+=16){
+            printf("\n%03x   %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x", i/0x10,MVN->memoria[i],MVN->memoria[i+1],MVN->memoria[i+2],MVN->memoria[i+3],MVN->memoria[i+4],MVN->memoria[i+5],MVN->memoria[i+6],MVN->memoria[i+7],MVN->memoria[i+8],MVN->memoria[i+9],MVN->memoria[i+10],MVN->memoria[i+11],MVN->memoria[i+12],MVN->memoria[i+13],MVN->memoria[i+14],MVN->memoria[i+15]);
+        }
+        printf("\n");
+}
+
 void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de Instruções, Instrução realizada, Operando e o conteúdo na memória
     printf("\nO estado atual da maquina eh: ");
     printf("\nAcumulador: %04x",MVN->acc);
     printf("\nC.I.: %03x ", MVN->ci);
     printf("\nInstrucao: %04x", MVN->instrucao);
     printf("\nOP: %03x",MVN->arg);
-    int i;
-    printf("\nMemoria:");
-    printf("\n     %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x",0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15);
-    for (i = 0; i<MEM_TAM; i+=16){
-        printf("\n%02x   %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x", i/0x10,MVN->memoria[i],MVN->memoria[i+1],MVN->memoria[i+2],MVN->memoria[i+3],MVN->memoria[i+4],MVN->memoria[i+5],MVN->memoria[i+6],MVN->memoria[i+7],MVN->memoria[i+8],MVN->memoria[i+9],MVN->memoria[i+10],MVN->memoria[i+11],MVN->memoria[i+12],MVN->memoria[i+13],MVN->memoria[i+14],MVN->memoria[i+15]);
+    char op[100];
+    printf("\nMostrar memoria?(y/n) ");
+    scanf("%s",op);
+    if (op[0] == 'y'){
+        int banco;
+        printf("\nDigite 1-16 para mostrar um dos bancos de memoria ou 0 para mostrar todos: ");
+        scanf("%d",&banco);
+        if (banco == 0){
+            imprimirMemoria(MVN, 0, MEM_TAM);
+        }
+        else{
+            printf("%d", banco);
+            imprimirMemoria(MVN, (banco-1)*0x1000, (banco*0x1000));
+        }
     }
-    printf("\n");
 }
+
 
 void carregarPrograma (MVN_t * MVN, char* filename){ //Carrega dados para a memória e posiciona o CI no valor inicial informado no arquivo texto.
     FILE *fp;
