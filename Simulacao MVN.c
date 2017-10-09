@@ -12,6 +12,7 @@ typedef int bool; // or #define bool int
 
 #define MEM_TAM 0xFFFF //definicao do tamanho da memoria. Caso se necessite de um espaco de memoria menor, recomenda-se diminuir este espaco para facilitar a visualizacao da maquina
 #define NUM_PROC 0x10
+#define NUM_PROG 0x20
 
 #endif
 
@@ -45,6 +46,27 @@ typedef struct MapaDeProcessos{
     LinhaMapaDeProcessos_t linha[NUM_PROC];
 }MapaDeProcessos_t;
 
+typedef struct LinhaMapaDeMemoria{
+    int idProgramaOcupando;
+    bool busy;
+}LinhaMapaDeMemoria_t;
+
+typedef struct MapaDeMemoria{
+    LinhaMapaDeMemoria_t linha[16];
+}MapaDeMemoria_t;
+
+typedef struct LinhaListaDeProgramas{
+    MapaDeProcessos_t MapaDeProcessos;
+    int idPrograma;
+    bool valido;
+}LinhaListaDeProgramas_t;
+
+typedef struct ListaDeProgramas{
+    LinhaListaDeProgramas_t linha[NUM_PROG];
+}ListaDeProgramas_t;
+
+
+
 typedef struct MVN{
     uint8_t memoria[MEM_TAM]; //memoria
     uint16_t acc; //acumulador
@@ -54,7 +76,8 @@ typedef struct MVN{
     char buffer[2];
     long cursorEntrada;
     bool modoIndireto;
-    MapaDeProcessos_t MapaDeProcessos;
+    ListaDeProgramas_t ListaDeProgramas;
+    MapaDeMemoria_t MapaDeMemoria;
 }MVN_t;
 
 
@@ -78,18 +101,45 @@ void inicializarMVN(MVN_t * MVN){
     MVN->cursorEntrada = 0;
     MVN->modoIndireto = false;
 
-    LinhaMapaDeProcessos_t linhaAtual;
-    for (i = 0; i < NUM_PROC; i++)
+    LinhaMapaDeMemoria_t linhaMemoriaAtual;
+
+    for (i = 0; i < 16; i++)
     {
-        linhaAtual = MVN->MapaDeProcessos.linha[i];
-        linhaAtual.busy = false;
-        linhaAtual.enderecoFisicoOrigem = 0;
-        linhaAtual.idProcesso = 0;
+        linhaMemoriaAtual = MVN->MapaDeMemoria.linha[i];
+        linhaMemoriaAtual.busy = false;
+        linhaMemoriaAtual.idProgramaOcupando = 0;
     }
 
-    /*MVN->MapaDeProcessos.linha[1].busy = true;
-    MVN->MapaDeProcessos.linha[1].enderecoFisicoOrigem = 0x500;
-    MVN->MapaDeProcessos.linha[1].idProcesso = 3;*/
+
+    LinhaListaDeProgramas_t linhaProgramaAtual;
+    LinhaMapaDeProcessos_t linhaProcessoAtual;
+
+    for (i = 0; i < NUM_PROG; i++)
+    {   
+        linhaProgramaAtual = MVN->ListaDeProgramas.linha[i];
+        linhaProgramaAtual.idPrograma = 0;
+        linhaProgramaAtual.valido = 0;
+        int j;
+
+        for (j = 0; j < NUM_PROC; j++){
+            linhaProcessoAtual = linhaProgramaAtual.MapaDeProcessos.linha[j];
+            linhaProcessoAtual.busy = false;
+            linhaProcessoAtual.enderecoFisicoOrigem = 0;
+            linhaProcessoAtual.idProcesso = 0;
+        }
+    }
+
+
+   /* MVN->MapaDeMemoria.linha[3].busy = true;
+    MVN->MapaDeMemoria.linha[3].idProgramaOcupando = 6;
+
+    MVN->ListaDeProgramas.linha[10].valido = 1;
+    MVN->ListaDeProgramas.linha[10].idPrograma = 6;
+
+    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].busy = 1; 
+    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].idProcesso = 3;
+    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].enderecoFisicoOrigem = 0x500;*/
+
 }
 
 void imprimirMemoria(MVN_t* MVN, int inicio, int fim){
@@ -102,6 +152,16 @@ void imprimirMemoria(MVN_t* MVN, int inicio, int fim){
         printf("\n");
 }
 
+void imprimirMapaDeMemoria(MVN_t* MVN){
+    int i;
+    printf("\nBanco  Ocupado  Id_Programa");
+    LinhaMapaDeMemoria_t linhaAtual;
+    for (i=0; i < 16; i++){
+        linhaAtual = MVN->MapaDeMemoria.linha[i];
+        printf("\n%5x %6d  %11d", i, linhaAtual.busy, linhaAtual.idProgramaOcupando);
+    }
+}
+
 void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de Instruções, Instrução realizada, Operando e o conteúdo na memória
     printf("\nO estado atual da maquina eh: ");
     printf("\nAcumulador: %04x",MVN->acc);
@@ -109,7 +169,7 @@ void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de
     printf("\nInstrucao: %04x", MVN->instrucao);
     printf("\nOP: %03x",MVN->arg);
     char op[100];
-    printf("\nMostrar memoria?(y/n) ");
+    printf("\n\nMostrar memoria?(y/n) ");
     scanf("%s",op);
     if (op[0] == 'y'){
         int banco;
@@ -122,6 +182,12 @@ void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de
             printf("%d", banco);
             imprimirMemoria(MVN, (banco-1)*0x1000, (banco*0x1000));
         }
+    }
+
+    printf("\n\nMostrar Mapa de Memoria?(y/n)");
+    scanf("%s",op);
+    if (op[0] == 'y'){
+        imprimirMapaDeMemoria(MVN);
     }
 }
 
@@ -153,7 +219,7 @@ void carregarPrograma (MVN_t * MVN, char* filename){ //Carrega dados para a memó
 }
 
 void iniciarPrograma (MVN_t * MVN){ //Inicia a execucao do programa, perguntando se o usuario quer mudar o valor do CI
-    printf("\nO valor atual no CI é: %04x", MVN->ci);
+    printf("\nO valor atual no CI eh: %04x", MVN->ci);
     printf("\nDeseja altera-lo?[y/n]");
     char resp[100];
     scanf("%s",resp);
@@ -163,18 +229,62 @@ void iniciarPrograma (MVN_t * MVN){ //Inicia a execucao do programa, perguntando
     }
 }
 
-bool calcularEnderecoEfetivo(MVN_t* MVN){
+int procurarPrograma(MVN_t * MVN, int id){
     int i;
-    int procId = MVN->arg/0x1000;
-    LinhaMapaDeProcessos_t linhaAtual;
-    for (i=0;i<NUM_PROC;i++){
-        linhaAtual = MVN->MapaDeProcessos.linha[i];
-        if (linhaAtual.busy && linhaAtual.idProcesso == procId){
-            MVN->arg = MVN->arg%0x1000 + linhaAtual.enderecoFisicoOrigem;
-            return true;
+    LinhaListaDeProgramas_t linhaProgramaAtual;
+    for (i = 0; i < NUM_PROG ; i++)
+    {
+        linhaProgramaAtual = MVN->ListaDeProgramas.linha[i];
+        if (linhaProgramaAtual.valido && linhaProgramaAtual.idPrograma == id){
+            return i;
         }
     }
-    return false;
+    return NUM_PROG;
+}
+
+int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo){
+    int i;
+    int linhaPrograma = procurarPrograma(MVN, idPrograma);
+    printf("\n%d %d",linhaPrograma, processo);
+    if (linhaPrograma == NUM_PROG){
+        printf("\n\nNAO ACHEI O PROGRAMA\n\n");
+        return MEM_TAM;
+    }
+    else{
+        MapaDeProcessos_t mapaDeProcessos = MVN->ListaDeProgramas.linha[linhaPrograma].MapaDeProcessos;
+        LinhaMapaDeProcessos_t linhaAtual;
+        for (i = 0; i < NUM_PROC; i++)
+        {
+            linhaAtual = mapaDeProcessos.linha[i];
+            //printf("\nlinha=%d busy=%d id=%d endereco=%d",i, linhaAtual.busy, linhaAtual.idProcesso, linhaAtual.enderecoFisicoOrigem);
+            if (linhaAtual.busy && (linhaAtual.idProcesso == processo)){
+                return linhaAtual.enderecoFisicoOrigem;
+            }
+        }
+        printf("\n\nNAO ACHEI O PROCESSO\n\n");
+        return MEM_TAM;
+    }
+}
+
+
+bool calcularEnderecoEfetivo(MVN_t* MVN){
+    int i;
+    int banco = MVN->ci/0x1000;
+    int progId;
+    if (!MVN->MapaDeMemoria.linha[banco].busy){
+        printf("\n\nO BANCO NAO TA SENDO USADO\n\n");
+        return false;
+    }
+    progId = MVN->MapaDeMemoria.linha[banco].idProgramaOcupando;
+    int procId = MVN->arg/0x1000;
+    int enderecoOrigem = procurarEnderecoProcesso(MVN, progId, procId);
+    if (enderecoOrigem == MEM_TAM){
+        return false;
+    }
+    else{
+        MVN->arg = MVN->arg%0x1000 + enderecoOrigem;
+        return true;
+    }
 }
 
 void fetch (MVN_t *MVN){ // Armazena em MVN->instrucao a proxima instrucao a ser executada
@@ -187,18 +297,16 @@ void decodificar(MVN_t *MVN){ //Separa a instrucao em instrucao e argumento
     bool processoEncontrado;
     aux = MVN->instrucao;
     aux2 = MVN->instrucao;
+    int banco = (MVN->ci/0x1000) * 0x1000;
 
     MVN->instrucao = aux/0x1000;
     MVN->arg = (aux2 & 0x0FFF);
     if (MVN->modoIndireto){
-        //printf("\n%x",MVN->arg);
-        MVN->arg = MVN->memoria[MVN->arg]*0x100 + MVN->memoria[MVN->arg+1];
-        //printf("\n%x",MVN->arg);
+        MVN->arg = MVN->memoria[banco + MVN->arg]*0x100 + MVN->memoria[banco + MVN->arg+1];
         processoEncontrado = calcularEnderecoEfetivo(MVN);
         if (!processoEncontrado){
-            printf("\n\n************** PROCESSO NAO ENCONTRADO **************\n\n");
+            printf("\n\n************** PROCESSO OU PROGRAMA NAO ENCONTRADO **************\n\n");
         }
-        //printf("\n%x",MVN->arg);
         MVN->modoIndireto = false;
     }
 }
@@ -209,15 +317,16 @@ void executar (MVN_t *MVN){ //Executa a instrucao
     char arquivo [100];
     char numero[5];
     char byte[2];
+    int banco = (MVN->ci/0x1000) * 0x1000;
 
     switch(MVN->instrucao){
         case 0x0: // Jump Incoditional
-            MVN->ci = MVN->arg;
+            MVN->ci = banco + MVN->arg;
         break;
 
         case 0x1:
             if (MVN->acc == 0){ // Jump if Zero
-                MVN->ci = MVN->arg;
+                MVN->ci = banco + MVN->arg;
             }
             else
                 MVN->ci = MVN->ci + 2;
@@ -225,7 +334,7 @@ void executar (MVN_t *MVN){ //Executa a instrucao
 
         case 0x2:
             if ((MVN->acc/0x8000) == 0x1){ // Jump if Negative
-                MVN->ci = MVN->arg;
+                MVN->ci = banco + MVN->arg;
             }
             else
                 MVN->ci = MVN->ci + 2;
@@ -237,38 +346,38 @@ void executar (MVN_t *MVN){ //Executa a instrucao
         break;
 
         case 0x4: // Add
-            MVN->acc = MVN->acc + MVN->memoria[MVN->arg];
+            MVN->acc = MVN->acc + MVN->memoria[banco + MVN->arg];
             MVN->ci = MVN->ci +2;
         break;
 
         case 0x5: // Sub
-            MVN->acc = MVN->acc + (~(MVN->memoria[MVN->arg])+1);
+            MVN->acc = MVN->acc + (~(MVN->memoria[banco + MVN->arg])+1);
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x6: // Multiply
-            MVN->acc = MVN->acc * MVN->memoria[MVN->arg];
+            MVN->acc = MVN->acc * MVN->memoria[banco + MVN->arg];
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x7: // Divide
-            MVN->acc = MVN->acc/MVN->memoria[MVN->arg];
+            MVN->acc = MVN->acc/MVN->memoria[banco + MVN->arg];
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x8: //Load from memory
-            MVN->acc = MVN->memoria[MVN->arg];
+            MVN->acc = MVN->memoria[banco + MVN->arg];
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x9: //Store
-            MVN->memoria[MVN->arg] = (0x00FF & MVN->acc);
+            MVN->memoria[banco + MVN->arg] = (0x00FF & MVN->acc);
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0xA: // Call subroutine
-            MVN->memoria[MVN->arg] = ((MVN->ci+2)/0x100);
-            MVN->memoria[MVN->arg + 1] = (0x00FF & (MVN->ci+2));
+            MVN->memoria[banco + MVN->arg] = ((MVN->ci+2)/0x100);
+            MVN->memoria[banco + MVN->arg + 1] = (0x00FF & (MVN->ci+2));
             MVN->ci = MVN->arg + 2;
         break;
 
@@ -279,7 +388,7 @@ void executar (MVN_t *MVN){ //Executa a instrucao
 
         case 0xC: // Halt Machine
             estado_maquina(MVN);
-            printf("Pressione qualquer tecla para continuar\n");
+            printf("\nPressione qualquer tecla para continuar\n");
             getch();
         break;
 
