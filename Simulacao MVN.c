@@ -38,8 +38,9 @@ typedef struct evento{ //Definicao do evento e seus parametros relevantes
 
 typedef struct LinhaMapaDeProcessos{
     int idProcesso;
-    uint16_t enderecoFisicoOrigem;
-    bool busy;
+    uint16_t blocoMemoriaFisica;
+    bool carregadoNaMemoria;
+   	long blocoDisco;
 }LinhaMapaDeProcessos_t;
 
 typedef struct MapaDeProcessos{
@@ -58,17 +59,26 @@ typedef struct MapaDeMemoria{
 typedef struct LinhaListaDeProgramas{
     MapaDeProcessos_t MapaDeProcessos;
     int idPrograma;
-    bool valido;
+    bool carregadoNoDisco;
 }LinhaListaDeProgramas_t;
 
 typedef struct ListaDeProgramas{
     LinhaListaDeProgramas_t linha[NUM_PROG];
 }ListaDeProgramas_t;
 
+typedef struct BlocoDisco{
+	uint8_t posicao[0xFFF];
+	bool ocupado;
+}BlocoDisco_t;
+
+typedef struct Disco{
+	BlocoDisco_t bloco[NUM_PROG*NUM_PROC];
+}Disco_t;
 
 
 typedef struct MVN{
     uint8_t memoria[MEM_TAM]; //memoria
+   	Disco_t disco;
     uint16_t acc; //acumulador
     uint16_t ci;  //contador de instrucoes
     uint16_t arg; //op da instrucao
@@ -118,27 +128,28 @@ void inicializarMVN(MVN_t * MVN){
     {   
         linhaProgramaAtual = MVN->ListaDeProgramas.linha[i];
         linhaProgramaAtual.idPrograma = 0;
-        linhaProgramaAtual.valido = 0;
+        linhaProgramaAtual.carregadoNoDisco = 0;
         int j;
 
         for (j = 0; j < NUM_PROC; j++){
             linhaProcessoAtual = linhaProgramaAtual.MapaDeProcessos.linha[j];
-            linhaProcessoAtual.busy = false;
-            linhaProcessoAtual.enderecoFisicoOrigem = 0;
+            linhaProcessoAtual.carregadoNaMemoria = false;
+            linhaProcessoAtual.blocoMemoriaFisica = 0;
             linhaProcessoAtual.idProcesso = 0;
+            linhaProcessoAtual.blocoDisco = 0;
         }
     }
 
 
-   /* MVN->MapaDeMemoria.linha[3].busy = true;
+    MVN->MapaDeMemoria.linha[3].busy = true;
     MVN->MapaDeMemoria.linha[3].idProgramaOcupando = 6;
 
-    MVN->ListaDeProgramas.linha[10].valido = 1;
+    MVN->ListaDeProgramas.linha[10].carregadoNoDisco = 1;
     MVN->ListaDeProgramas.linha[10].idPrograma = 6;
 
-    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].busy = 1; 
+    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].carregadoNaMemoria = 1; 
     MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].idProcesso = 3;
-    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].enderecoFisicoOrigem = 0x500;*/
+    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].blocoMemoriaFisica = 3;
 
 }
 
@@ -235,7 +246,7 @@ int procurarPrograma(MVN_t * MVN, int id){
     for (i = 0; i < NUM_PROG ; i++)
     {
         linhaProgramaAtual = MVN->ListaDeProgramas.linha[i];
-        if (linhaProgramaAtual.valido && linhaProgramaAtual.idPrograma == id){
+        if (linhaProgramaAtual.carregadoNoDisco && linhaProgramaAtual.idPrograma == id){
             return i;
         }
     }
@@ -245,7 +256,7 @@ int procurarPrograma(MVN_t * MVN, int id){
 int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo){
     int i;
     int linhaPrograma = procurarPrograma(MVN, idPrograma);
-    printf("\n%d %d",linhaPrograma, processo);
+    //printf("\n%d %d",linhaPrograma, processo);
     if (linhaPrograma == NUM_PROG){
         printf("\n\nNAO ACHEI O PROGRAMA\n\n");
         return MEM_TAM;
@@ -256,9 +267,9 @@ int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo){
         for (i = 0; i < NUM_PROC; i++)
         {
             linhaAtual = mapaDeProcessos.linha[i];
-            //printf("\nlinha=%d busy=%d id=%d endereco=%d",i, linhaAtual.busy, linhaAtual.idProcesso, linhaAtual.enderecoFisicoOrigem);
-            if (linhaAtual.busy && (linhaAtual.idProcesso == processo)){
-                return linhaAtual.enderecoFisicoOrigem;
+            //printf("\nlinha=%d busy=%d id=%d endereco=%d",i, linhaAtual.busy, linhaAtual.idProcesso, linhaAtual.blocoMemoriaFisica);
+            if (linhaAtual.carregadoNaMemoria && (linhaAtual.idProcesso == processo)){
+                return linhaAtual.blocoMemoriaFisica * 0x1000;
             }
         }
         printf("\n\nNAO ACHEI O PROCESSO\n\n");
@@ -283,6 +294,7 @@ bool calcularEnderecoEfetivo(MVN_t* MVN){
     }
     else{
         MVN->arg = MVN->arg%0x1000 + enderecoOrigem;
+        printf("\n%x",MVN->arg);
         return true;
     }
 }
@@ -304,10 +316,14 @@ void decodificar(MVN_t *MVN){ //Separa a instrucao em instrucao e argumento
     if (MVN->modoIndireto){
         MVN->arg = MVN->memoria[banco + MVN->arg]*0x100 + MVN->memoria[banco + MVN->arg+1];
         processoEncontrado = calcularEnderecoEfetivo(MVN);
+        MVN->arg = MVN->arg;
         if (!processoEncontrado){
             printf("\n\n************** PROCESSO OU PROGRAMA NAO ENCONTRADO **************\n\n");
         }
         MVN->modoIndireto = false;
+    }
+    else{
+    	MVN->arg = banco + MVN->arg;
     }
 }
 
@@ -321,12 +337,12 @@ void executar (MVN_t *MVN){ //Executa a instrucao
 
     switch(MVN->instrucao){
         case 0x0: // Jump Incoditional
-            MVN->ci = banco + MVN->arg;
+            MVN->ci = MVN->arg;
         break;
 
         case 0x1:
             if (MVN->acc == 0){ // Jump if Zero
-                MVN->ci = banco + MVN->arg;
+                MVN->ci = MVN->arg;
             }
             else
                 MVN->ci = MVN->ci + 2;
@@ -334,50 +350,50 @@ void executar (MVN_t *MVN){ //Executa a instrucao
 
         case 0x2:
             if ((MVN->acc/0x8000) == 0x1){ // Jump if Negative
-                MVN->ci = banco + MVN->arg;
+                MVN->ci = MVN->arg;
             }
             else
                 MVN->ci = MVN->ci + 2;
         break;
 
         case 0x3: // Load Value
-            MVN->acc = MVN->arg;
+            MVN->acc = MVN->arg & 0x0FFF;
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x4: // Add
-            MVN->acc = MVN->acc + MVN->memoria[banco + MVN->arg];
+            MVN->acc = MVN->acc + MVN->memoria[MVN->arg];
             MVN->ci = MVN->ci +2;
         break;
 
         case 0x5: // Sub
-            MVN->acc = MVN->acc + (~(MVN->memoria[banco + MVN->arg])+1);
+            MVN->acc = MVN->acc + (~(MVN->memoria[MVN->arg])+1);
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x6: // Multiply
-            MVN->acc = MVN->acc * MVN->memoria[banco + MVN->arg];
+            MVN->acc = MVN->acc * MVN->memoria[MVN->arg];
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x7: // Divide
-            MVN->acc = MVN->acc/MVN->memoria[banco + MVN->arg];
+            MVN->acc = MVN->acc/MVN->memoria[MVN->arg];
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x8: //Load from memory
-            MVN->acc = MVN->memoria[banco + MVN->arg];
+            MVN->acc = MVN->memoria[MVN->arg];
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0x9: //Store
-            MVN->memoria[banco + MVN->arg] = (0x00FF & MVN->acc);
+            MVN->memoria[MVN->arg] = (0x00FF & MVN->acc);
             MVN->ci = MVN->ci + 2;
         break;
 
         case 0xA: // Call subroutine
-            MVN->memoria[banco + MVN->arg] = ((MVN->ci+2)/0x100);
-            MVN->memoria[banco + MVN->arg + 1] = (0x00FF & (MVN->ci+2));
+            MVN->memoria[MVN->arg] = ((MVN->ci+2)/0x100);
+            MVN->memoria[MVN->arg + 1] = (0x00FF & (MVN->ci+2));
             MVN->ci = MVN->arg + 2;
         break;
 
@@ -390,10 +406,11 @@ void executar (MVN_t *MVN){ //Executa a instrucao
             estado_maquina(MVN);
             printf("\nPressione qualquer tecla para continuar\n");
             getch();
+            MVN->ci = MVN->arg;
         break;
 
         case 0xD: // Input
-            switch (MVN->arg/0x100){
+            switch ((MVN->arg - banco)/0x100){
                 case 0:
                     printf("\nO que colocar no acumulador?");
                     uint16_t k;
@@ -431,7 +448,7 @@ void executar (MVN_t *MVN){ //Executa a instrucao
         break;
 
         case 0xE: // Output
-            switch (MVN->arg/0x100){
+            switch ((MVN->arg - banco)/0x100){
                 case 0:
                     printf("%c",MVN->acc);
                break;
