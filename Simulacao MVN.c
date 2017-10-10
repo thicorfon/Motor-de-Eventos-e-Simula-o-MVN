@@ -141,15 +141,15 @@ void inicializarMVN(MVN_t * MVN){
     }
 
 
-    MVN->MapaDeMemoria.linha[3].busy = true;
-    MVN->MapaDeMemoria.linha[3].idProgramaOcupando = 6;
+    // MVN->MapaDeMemoria.linha[3].busy = true;
+    // MVN->MapaDeMemoria.linha[3].idProgramaOcupando = 6;
 
-    MVN->ListaDeProgramas.linha[10].carregadoNoDisco = 1;
-    MVN->ListaDeProgramas.linha[10].idPrograma = 6;
+    // MVN->ListaDeProgramas.linha[10].carregadoNoDisco = 1;
+    // MVN->ListaDeProgramas.linha[10].idPrograma = 6;
 
-    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].carregadoNaMemoria = 1; 
-    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].idProcesso = 3;
-    MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].blocoMemoriaFisica = 3;
+    // MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].carregadoNaMemoria = 1; 
+    // MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].idProcesso = 4;
+    // MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[4].blocoMemoriaFisica = 3;
 
 }
 
@@ -294,7 +294,6 @@ bool calcularEnderecoEfetivo(MVN_t* MVN){
     }
     else{
         MVN->arg = MVN->arg%0x1000 + enderecoOrigem;
-        printf("\n%x",MVN->arg);
         return true;
     }
 }
