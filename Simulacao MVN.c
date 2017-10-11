@@ -48,6 +48,7 @@ typedef struct MapaDeProcessos{
 typedef struct LinhaMapaDeMemoria{
     int idProgramaOcupando;
     bool busy;
+    int tempoLU;
 }LinhaMapaDeMemoria_t;
 
 typedef struct MapaDeMemoria{
@@ -58,6 +59,7 @@ typedef struct LinhaListaDeProgramas{
     MapaDeProcessos_t MapaDeProcessos;
     int idPrograma;
     bool carregadoNoDisco;
+    int ultimoCi;
 }LinhaListaDeProgramas_t;
 
 typedef struct ListaDeProgramas{
@@ -132,6 +134,7 @@ void inicializarMVN(MVN_t * MVN){
         linhaProgramaAtual = &MVN->ListaDeProgramas.linha[i];
         linhaProgramaAtual->idPrograma = 0;
         linhaProgramaAtual->carregadoNoDisco = 0;
+        linhaProgramaAtual->ultimoCi = 0;
         int j;
 
         for (j = 0; j < NUM_PROC; j++){
@@ -192,18 +195,16 @@ void imprimirMapaDeProcessos(MVN_t* MVN, int idPrograma){
     		printf("\n%10x  %18x",linhaAtual.blocoDisco, linhaAtual.blocoMemoriaFisica);
     	}
     }
-
-
 }
 
 void imprimirListaDeProgramas(MVN_t* MVN){
 	int i;
-	printf("\nidPrograma  CarregadoNoDisco");
+	printf("\nidPrograma  CarregadoNoDisco  EnderecoDeInicio");
 	LinhaListaDeProgramas_t linhaAtual;	
 	for (i = 0; i < NUM_PROG; i++)
 	{
 		linhaAtual = MVN->ListaDeProgramas.linha[i];
-		printf("\n%10x  %16x", linhaAtual.idPrograma, linhaAtual.carregadoNoDisco);
+		printf("\n%10x  %16x  %16x", linhaAtual.idPrograma, linhaAtual.carregadoNoDisco, linhaAtual.ultimoCi);
 	}
 	int programa = 1;
 	while(programa != 0){
@@ -230,7 +231,6 @@ void imprimirDisco(MVN_t* MVN){
         	}
 		}
 	}
-
 }
 
 void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de Instruções, Instrução realizada, Operando e o conteúdo na memória
@@ -240,7 +240,7 @@ void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de
     printf("\nInstrucao: %04x", MVN->instrucao);
     printf("\nOP: %03x",MVN->arg);
     char op[100];
-    printf("\n\nMostrar memoria?(y/n) ");
+    printf("\n\nMostrar Memoria?(y/n) ");
     scanf("%s",op);
     if (op[0] == 'y'){
         int banco;
@@ -273,12 +273,14 @@ void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de
     }
 }
 
-int adicionarProgramaNaListaDeProgramas(MVN_t * MVN, int tarefa){
+int adicionarProgramaNaListaDeProgramas(MVN_t * MVN, int tarefa, int enderecoInicial){
 	MVN->ListaDeProgramas.fim++;
 	int indice = MVN->ListaDeProgramas.fim;
 	LinhaListaDeProgramas_t * linhaProgramaAtual = &MVN->ListaDeProgramas.linha[indice];
 	linhaProgramaAtual->carregadoNoDisco = true;
 	linhaProgramaAtual->idPrograma = tarefa;
+	linhaProgramaAtual->ultimoCi = enderecoInicial;
+
 
 	return indice;
 }
@@ -308,8 +310,6 @@ void carregarPrograma (MVN_t * MVN, char* filename, int tarefa){ //Carrega dados
     FILE *fp;
     fp = fopen(filename, "r"); //ver o formato do arquivo no relatorio
 
-    int indiceProgramaNaLista = adicionarProgramaNaListaDeProgramas(MVN, tarefa);
-
     int endereco;
     int instrucao;
     char * parametro;
@@ -319,6 +319,12 @@ void carregarPrograma (MVN_t * MVN, char* filename, int tarefa){ //Carrega dados
 
     int processoAnterior = 16;
     int blocoAtual;
+
+    fgets(buf,n,fp);
+    parametro = strtok(buf," ");
+    endereco = strtol(parametro,&parametro,16);
+    int indiceProgramaNaLista = adicionarProgramaNaListaDeProgramas(MVN, tarefa, endereco);
+
 
     while (fgets(buf,n,fp)!= NULL){
         parametro = strtok (buf," ");
@@ -331,19 +337,6 @@ void carregarPrograma (MVN_t * MVN, char* filename, int tarefa){ //Carrega dados
         MVN->disco.bloco[blocoAtual].posicao[endereco%0x1000] = instrucao/0x100;
         MVN->disco.bloco[blocoAtual].posicao[endereco%0x1000 + 1] = instrucao%0x100;
         processoAnterior = endereco/0x1000;
-    }
-
-    estado_maquina(MVN);
-}
-
-void iniciarPrograma (MVN_t * MVN){ //Inicia a execucao do programa, perguntando se o usuario quer mudar o valor do CI
-    printf("\nO valor atual no CI eh: %04x", MVN->ci);
-    printf("\nDeseja altera-lo?[y/n]");
-    char resp[100];
-    scanf("%s",resp);
-    if (resp[0] == 'y'){
-        printf("Digite o novo valor no CI em hexadecimal:");
-        scanf("%x",&MVN->ci);
     }
 }
 
@@ -358,6 +351,77 @@ int procurarPrograma(MVN_t * MVN, int id){
         }
     }
     return NUM_PROG;
+}
+
+int procurarBlocoMemoriaVago(MVN_t * MVN){
+	MapaDeMemoria_t mapa = MVN->MapaDeMemoria;
+	LinhaMapaDeMemoria_t linha;
+	int i;
+	int maisAntigo = -1;
+	int linhaMaisAntiga = 0;
+
+	for (i=0; i < NUM_PROC; i++){
+		linha = mapa.linha[i];
+		if (!linha.busy)
+			return i;
+		else{
+			if ((maisAntigo == -1) || (linha.tempoLU < maisAntigo)){
+				maisAntigo = linha.tempoLU;
+				linhaMaisAntiga = i;
+			}
+		}
+	}
+
+	return linhaMaisAntiga;
+}
+
+void copiarDiscoParaMemoria(MVN_t *MVN, int blocoMemoria, int blocoDisco){
+	int enderecoBaseMemoria = blocoMemoria * 0x1000;
+	BlocoDisco_t bloco = MVN->disco.bloco[blocoDisco];
+	int i;
+
+	for (i=0; i < 0x1000; i++){
+		MVN->memoria[enderecoBaseMemoria + i] = bloco.posicao[i];
+	}
+}
+
+void alocarProcessoNaMemoria (MVN_t * MVN, int tarefa, int processo, int indiceListaDeProgramas){
+	LinhaListaDeProgramas_t* programaAtual = &MVN->ListaDeProgramas.linha[indiceListaDeProgramas];
+	int blocoDaMemoriaAOcupar = procurarBlocoMemoriaVago(MVN);
+	int blocoDisco = programaAtual->MapaDeProcessos.linha[processo].blocoDisco;
+
+	copiarDiscoParaMemoria(MVN, blocoDaMemoriaAOcupar, blocoDisco);
+
+	programaAtual->MapaDeProcessos.linha[processo].blocoMemoriaFisica = blocoDaMemoriaAOcupar;
+
+	MVN->MapaDeMemoria.linha[blocoDaMemoriaAOcupar].idProgramaOcupando = tarefa;
+	MVN->MapaDeMemoria.linha[blocoDaMemoriaAOcupar].busy = true;
+}
+
+void iniciarPrograma (MVN_t * MVN, int tarefa){ //Inicia a execucao do programa, perguntando se o usuario quer mudar o valor do CI
+	int indiceProgramaNaLista = procurarPrograma(MVN, tarefa);
+	if (indiceProgramaNaLista == NUM_PROG){
+		printf("\n\nNAO ACHEI O PROGRAMA\n\n");
+	}
+	else{
+		LinhaListaDeProgramas_t* programaAtual = &MVN->ListaDeProgramas.linha[indiceProgramaNaLista];
+		int enderecoLogico = programaAtual->ultimoCi;
+		int processoInicial = enderecoLogico/0x1000;
+		if (programaAtual->MapaDeProcessos.linha[processoInicial].blocoMemoriaFisica == -1){
+			alocarProcessoNaMemoria(MVN, tarefa, processoInicial, indiceProgramaNaLista);
+		}
+		MVN->ci = (programaAtual->MapaDeProcessos.linha[processoInicial].blocoMemoriaFisica * 0x1000) + (enderecoLogico%0x1000);
+	}
+
+
+    printf("\nO valor atual no CI eh: %04x", MVN->ci);
+    printf("\nDeseja altera-lo?[y/n]");
+    char resp[100];
+    scanf("%s",resp);
+    if (resp[0] == 'y'){
+        printf("Digite o novo valor no CI em hexadecimal:");
+        scanf("%x",&MVN->ci);
+    }
 }
 
 int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo){
@@ -397,7 +461,6 @@ bool calcularEnderecoEfetivo(MVN_t* MVN){
     }
     else{
         MVN->arg = MVN->arg%0x1000 + enderecoOrigem;
-        printf("\n%x", MVN->arg);
         return true;
     }
 }
@@ -976,7 +1039,7 @@ void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acomp
         // break;
 
         case 'I'://Iniciar Programa
-            iniciarPrograma(MVN);
+            iniciarPrograma(MVN, tarefa);
             inserir_evento(head,'N',atual->next->tempo, atual->next->tarefa,false);
         break;
 
