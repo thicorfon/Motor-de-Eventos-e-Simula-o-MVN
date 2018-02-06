@@ -10,13 +10,14 @@
 #define true 1
 typedef int bool; // or #define bool int
 
-#define MEM_TAM 0xFFFF //definicao do tamanho da memoria. Caso se necessite de um espaco de memoria menor, recomenda-se diminuir este espaco para facilitar a visualizacao da maquina
+#define MEM_TAM 0x10000 //definicao do tamanho da memoria. Caso se necessite de um espaco de memoria menor, recomenda-se diminuir este espaco para facilitar a visualizacao da maquina
 #define NUM_PROC 0x10
 #define NUM_PROG 0x20
+#define NUM_DEVICE 0x10
 
 #endif
 
-/**Definição do evento e seus parametros**/
+/**Definiï¿½ï¿½o do evento e seus parametros**/
 
 typedef struct evento{ //Definicao do evento e seus parametros relevantes
 
@@ -34,7 +35,7 @@ typedef struct evento{ //Definicao do evento e seus parametros relevantes
 } evento_t;
 
 
-/**Definição dos objetos a serem simulados**/
+/**Definiï¿½ï¿½o dos objetos a serem simulados**/
 
 typedef struct LinhaMapaDeProcessos{
     int blocoMemoriaFisica;
@@ -60,6 +61,8 @@ typedef struct LinhaListaDeProgramas{
     int idPrograma;
     bool carregadoNoDisco;
     int ultimoCi;
+    int ultimoAcc;
+    bool ultimoModoIndireto;
 }LinhaListaDeProgramas_t;
 
 typedef struct ListaDeProgramas{
@@ -77,6 +80,20 @@ typedef struct Disco{
 	long ultimoBlocoOcupado;
 }Disco_t;
 
+typedef struct DispositivoDeEntrada{
+    uint8_t reg;
+    bool uso;
+    bool termino;
+    int tempo;
+    int valor;
+}DispositivoDeEntrada_t;
+
+typedef struct DispositivoDeSaida{
+    uint8_t reg;
+    bool uso;
+    bool termino;
+    int tempo;
+}DispositivoDeSaida_t;
 
 typedef struct MVN{
     uint8_t memoria[MEM_TAM]; //memoria
@@ -88,8 +105,12 @@ typedef struct MVN{
     char buffer[2];
     long cursorEntrada;
     bool modoIndireto;
+    bool modoSupervisor;
+    int programaAtivo;
     ListaDeProgramas_t ListaDeProgramas;
     MapaDeMemoria_t MapaDeMemoria;
+    DispositivoDeEntrada_t DispositivosDeEntrada[NUM_DEVICE];
+    DispositivoDeSaida_t  DispositivosDeSaida[NUM_DEVICE];
 }MVN_t;
 
 
@@ -99,6 +120,7 @@ void pop_evento(evento_t ** head, evento_t ** retorno);
 void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool* acompanhamento, bool* fim);
 void menuDePausa(evento_t * listaDeEventos, MVN_t * MVN, bool *acompanhamento,bool *fim);
 int procurarPrograma(MVN_t * MVN, int id);
+void inserir_evento (evento_t * head, char nome, int tempo, int tarefa, bool breakpoint);
 
 /**Reacoes a eventos especificos referentes aos objetos simulados**/
 
@@ -113,6 +135,8 @@ void inicializarMVN(MVN_t * MVN){
     MVN->instrucao = 0;
     MVN->cursorEntrada = 0;
     MVN->modoIndireto = false;
+    MVN->modoSupervisor = false;
+    MVN->programaAtivo = -1;
 
     LinhaMapaDeMemoria_t * linhaMemoriaAtual;
 
@@ -130,11 +154,13 @@ void inicializarMVN(MVN_t * MVN){
     MVN->ListaDeProgramas.fim = -1;
 
     for (i = 0; i < NUM_PROG; i++)
-    {   
+    {
         linhaProgramaAtual = &MVN->ListaDeProgramas.linha[i];
         linhaProgramaAtual->idPrograma = 0;
         linhaProgramaAtual->carregadoNoDisco = 0;
         linhaProgramaAtual->ultimoCi = 0;
+        linhaProgramaAtual->ultimoAcc = 0;
+        linhaProgramaAtual->ultimoModoIndireto = false;
         int j;
 
         for (j = 0; j < NUM_PROC; j++){
@@ -144,16 +170,33 @@ void inicializarMVN(MVN_t * MVN){
         }
     }
 
+    DispositivoDeEntrada_t *deviceEntradaAtual;
+    DispositivoDeSaida_t *deviceSaidaAtual;
+
+    for (i = 0; i < NUM_DEVICE; i++){
+        deviceEntradaAtual = &MVN->DispositivosDeEntrada[i];
+        deviceSaidaAtual = &MVN->DispositivosDeSaida[i];
+        deviceEntradaAtual->reg = 0;
+        deviceSaidaAtual->reg = 0;
+        deviceEntradaAtual->tempo = NUM_DEVICE - i;
+        deviceSaidaAtual->tempo = NUM_DEVICE - i;
+        deviceEntradaAtual->termino = false;
+        deviceSaidaAtual->termino = false;
+        deviceEntradaAtual->uso = false;
+        deviceSaidaAtual->uso = false;
+        deviceEntradaAtual->valor = i+1;
+    }
+
     MVN->disco.ultimoBlocoOcupado = -1;
 
 
     // MVN->MapaDeMemoria.linha[3].busy = true;
     // MVN->MapaDeMemoria.linha[3].idProgramaOcupando = 6;
 
-    // MVN->ListaDeProgramas.linha[10].carregadoNoDisco = 1;
+    // MVN->ListaDePro.gramas.linha[10].carregadoNoDisco = 1;
     // MVN->ListaDeProgramas.linha[10].idPrograma = 6;
 
-    // MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[3].blocoDisco = 0; 
+    // MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[3].blocoDisco = 0;
     // MVN->ListaDeProgramas.linha[10].MapaDeProcessos.linha[3].blocoMemoriaFisica = 3;
 
 }
@@ -161,7 +204,7 @@ void inicializarMVN(MVN_t * MVN){
 void imprimirMemoria(MVN_t* MVN, int inicio, int fim){
         printf("\nMemoria:");
         int i;
-        printf("\n      %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x",0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15);
+        printf("\n      %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x    %2x",0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15);
         for (i = inicio; i<fim; i+=16){
             printf("\n%03x   %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x    %02x", i/0x10,MVN->memoria[i],MVN->memoria[i+1],MVN->memoria[i+2],MVN->memoria[i+3],MVN->memoria[i+4],MVN->memoria[i+5],MVN->memoria[i+6],MVN->memoria[i+7],MVN->memoria[i+8],MVN->memoria[i+9],MVN->memoria[i+10],MVN->memoria[i+11],MVN->memoria[i+12],MVN->memoria[i+13],MVN->memoria[i+14],MVN->memoria[i+15]);
         }
@@ -179,7 +222,7 @@ void imprimirMapaDeMemoria(MVN_t* MVN){
 
 void imprimirMapaDeProcessos(MVN_t* MVN, int idPrograma){
 	int linhaPrograma = procurarPrograma(MVN, idPrograma);
-	
+
 	if (linhaPrograma == NUM_PROG){
         printf("\n\nNAO ACHEI O PROGRAMA\n\n");
     }
@@ -199,12 +242,12 @@ void imprimirMapaDeProcessos(MVN_t* MVN, int idPrograma){
 
 void imprimirListaDeProgramas(MVN_t* MVN){
 	int i;
-	printf("\nidPrograma  CarregadoNoDisco  EnderecoDeInicio");
-	LinhaListaDeProgramas_t linhaAtual;	
+	printf("\nidPrograma  CarregadoNoDisco  UltimoCi  UltimoAcc  UltimoModoIndireto");
+	LinhaListaDeProgramas_t linhaAtual;
 	for (i = 0; i < NUM_PROG; i++)
 	{
 		linhaAtual = MVN->ListaDeProgramas.linha[i];
-		printf("\n%10x  %16x  %16x", linhaAtual.idPrograma, linhaAtual.carregadoNoDisco, linhaAtual.ultimoCi);
+		printf("\n%10x  %16x  %8x  %9x  %18x", linhaAtual.idPrograma, linhaAtual.carregadoNoDisco, linhaAtual.ultimoCi, linhaAtual.ultimoAcc, linhaAtual.ultimoModoIndireto);
 	}
 	int programa = 1;
 	while(programa != 0){
@@ -233,24 +276,26 @@ void imprimirDisco(MVN_t* MVN){
 	}
 }
 
-void estado_maquina(MVN_t * MVN){ //Printa o conteúdo do acumulador, Contador de Instruções, Instrução realizada, Operando e o conteúdo na memória
+void estado_maquina(MVN_t * MVN){ //Printa o conteï¿½do do acumulador, Contador de Instruï¿½ï¿½es, Instruï¿½ï¿½o realizada, Operando e o conteï¿½do na memï¿½ria
     printf("\nO estado atual da maquina eh: ");
     printf("\nAcumulador: %04x",MVN->acc);
     printf("\nC.I.: %03x ", MVN->ci);
     printf("\nInstrucao: %04x", MVN->instrucao);
-    printf("\nOP: %03x",MVN->arg);
+    printf("\nOP: %04x",MVN->arg);
+    printf("\nSupervisor: %1d", MVN->modoSupervisor);
+    printf("\nProgramaAtivo: %2d", MVN->programaAtivo);
     char op[100];
     printf("\n\nMostrar Memoria?(y/n) ");
     scanf("%s",op);
     if (op[0] == 'y'){
         int banco;
-        printf("\nDigite 1-16 para mostrar um dos bancos de memoria ou 0 para mostrar todos: ");
+        printf("\nDigite 0-15 para mostrar um dos bancos de memoria ou -1 para mostrar todos: ");
         scanf("%d",&banco);
-        if (banco == 0){
+        if (banco == -1){
             imprimirMemoria(MVN, 0, MEM_TAM);
         }
         else{
-            imprimirMemoria(MVN, (banco-1)*0x1000, (banco*0x1000));
+            imprimirMemoria(MVN, (banco)*0x1000, ((banco+1)*0x1000));
         }
     }
 
@@ -306,7 +351,7 @@ int alocarProcessoNoDisco(MVN_t * MVN, int tarefa, int endereco, int indiceLista
 }
 
 
-void carregarPrograma (MVN_t * MVN, char* filename, int tarefa){ //Carrega dados para a memória e posiciona o CI no valor inicial informado no arquivo texto.
+void carregarPrograma (MVN_t * MVN, char* filename, int tarefa){ //Carrega dados para a memï¿½ria e posiciona o CI no valor inicial informado no arquivo texto.
     FILE *fp;
     fp = fopen(filename, "r"); //ver o formato do arquivo no relatorio
 
@@ -424,7 +469,7 @@ void iniciarPrograma (MVN_t * MVN, int tarefa){ //Inicia a execucao do programa,
     }
 }
 
-int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo){
+int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo ,  evento_t* head, evento_t* atual){
     int i;
     int linhaPrograma = procurarPrograma(MVN, idPrograma);
     //printf("\n%d %d",linhaPrograma, processo);
@@ -439,37 +484,61 @@ int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo){
         if (linhaAtualProcesso.blocoMemoriaFisica != -1){
         	return linhaAtualProcesso.blocoMemoriaFisica * 0x1000;
         }
-        printf("\n\nNAO ACHEI O PROCESSO\n\n");
-        return MEM_TAM;
+        inserir_evento(head,atual->next->nome,atual->next->tempo,atual->next->tarefa,atual->next->breakpoint);
+        inserir_evento(head,'A', atual->next->tempo -1 , atual->next->tarefa, atual->next->breakpoint);
+        MVN->memoria[MEM_TAM-1] = processo ;
+        MVN->memoria[MEM_TAM-2] = linhaPrograma ;
+        return -1;
     }
 }
 
 
-bool calcularEnderecoEfetivo(MVN_t* MVN){
+int calcularEnderecoEfetivo(MVN_t* MVN,  evento_t* head, evento_t* atual){
     int i;
     int banco = MVN->ci/0x1000;
     int progId;
     if (!MVN->MapaDeMemoria.linha[banco].busy){
         printf("\n\nO BANCO NAO TA SENDO USADO\n\n");
-        return false;
+        return 0;
     }
     progId = MVN->MapaDeMemoria.linha[banco].idProgramaOcupando;
     int procId = MVN->arg/0x1000;
-    int enderecoOrigem = procurarEnderecoProcesso(MVN, progId, procId);
+    int enderecoOrigem = procurarEnderecoProcesso(MVN, progId, procId, head, atual);
     if (enderecoOrigem == MEM_TAM){
-        return false;
+        return 0;
+    }
+    else if (enderecoOrigem == -1){
+      return -1;
     }
     else{
         MVN->arg = MVN->arg%0x1000 + enderecoOrigem;
-        return true;
+        return 1;
     }
+}
+
+int procurarProcesso(MVN_t* MVN,int linhaPrograma, int banco){
+    int i;
+    for (i = 0; i < NUM_PROC; i++){
+        if (MVN->ListaDeProgramas.linha[linhaPrograma].MapaDeProcessos.linha[i].blocoMemoriaFisica == banco)
+            return i;
+    }
+    return NUM_PROC;
+}
+
+int calcularEnderecoLogico(MVN_t* MVN, int enderecoFisico){
+    //printf("\n\n O ENDEREÃ‡O FISICO EH %04x E O MOD 0X1000 EH %04x", enderecoFisico, enderecoFisico%0x1000);
+    int banco = enderecoFisico/0x1000;
+    int idPrograma = MVN->MapaDeMemoria.linha[banco].idProgramaOcupando;
+    int linhaPrograma = procurarPrograma(MVN,idPrograma);
+    int processo = procurarProcesso(MVN, linhaPrograma, banco);
+    return (processo*0x1000 + enderecoFisico%0x1000);
 }
 
 void fetch (MVN_t *MVN){ // Armazena em MVN->instrucao a proxima instrucao a ser executada
     MVN->instrucao = MVN->memoria[MVN->ci]*0x100 + MVN->memoria[MVN->ci+1];
 }
 
-void decodificar(MVN_t *MVN){ //Separa a instrucao em instrucao e argumento
+void decodificar(MVN_t *MVN, evento_t* head, evento_t* atual){ //Separa a instrucao em instrucao e argumento
     uint16_t aux;
     uint16_t aux2;
     bool processoEncontrado;
@@ -481,91 +550,124 @@ void decodificar(MVN_t *MVN){ //Separa a instrucao em instrucao e argumento
     MVN->arg = (aux2 & 0x0FFF);
     if (MVN->modoIndireto){
         MVN->arg = MVN->memoria[banco + MVN->arg]*0x100 + MVN->memoria[banco + MVN->arg+1];
-        processoEncontrado = calcularEnderecoEfetivo(MVN);
+        processoEncontrado = calcularEnderecoEfetivo(MVN, head, atual);
         MVN->arg = MVN->arg;
-        if (!processoEncontrado){
+        if (processoEncontrado == 0){
             printf("\n\n************** PROCESSO OU PROGRAMA NAO ENCONTRADO **************\n\n");
         }
-        MVN->modoIndireto = false;
+        else if (processoEncontrado == 1){
+            inserir_evento(head,'E',atual->next->tempo+1,atual->next->tarefa,false);
+        }
+        else {
+            //printf("\n\nNECESSARIO ALOCAR PROCESSO\n\n");
+            MVN->instrucao = aux;
+        }
     }
     else{
-    	MVN->arg = banco + MVN->arg;
+      MVN->arg = banco + MVN->arg;
+      inserir_evento(head,'E',atual->next->tempo+1,atual->next->tarefa,false);
     }
 }
 
-void executar (MVN_t *MVN){ //Executa a instrucao
+void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
 
     FILE *fp;
     char arquivo [100];
     char numero[5];
     char byte[2];
     int banco = (MVN->ci/0x1000) * 0x1000;
+    int linhaPrograma = procurarPrograma(MVN, idPrograma);
+    MVN->modoIndireto = false;
+    MVN->ListaDeProgramas.linha[linhaPrograma].ultimoModoIndireto = MVN->modoIndireto;
 
     switch(MVN->instrucao){
         case 0x0: // Jump Incoditional
             MVN->ci = MVN->arg;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->arg);
         break;
 
         case 0x1:
             if (MVN->acc == 0){ // Jump if Zero
                 MVN->ci = MVN->arg;
+                MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->arg);
             }
-            else
+            else{
                 MVN->ci = MVN->ci + 2;
+                MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
+            }
         break;
 
         case 0x2:
             if ((MVN->acc/0x8000) == 0x1){ // Jump if Negative
                 MVN->ci = MVN->arg;
+                MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->arg);
             }
-            else
+            else{
                 MVN->ci = MVN->ci + 2;
+                MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
+            }
         break;
 
         case 0x3: // Load Value
             MVN->acc = MVN->arg & 0x0FFF;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0x4: // Add
             MVN->acc = MVN->acc + MVN->memoria[MVN->arg];
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci +2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0x5: // Sub
             MVN->acc = MVN->acc + (~(MVN->memoria[MVN->arg])+1);
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0x6: // Multiply
             MVN->acc = MVN->acc * MVN->memoria[MVN->arg];
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0x7: // Divide
             MVN->acc = MVN->acc/MVN->memoria[MVN->arg];
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0x8: //Load from memory
             MVN->acc = MVN->memoria[MVN->arg];
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0x9: //Store
             MVN->memoria[MVN->arg] = (0x00FF & MVN->acc);
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0xA: // Call subroutine
             MVN->memoria[MVN->arg] = ((MVN->ci+2)/0x100);
             MVN->memoria[MVN->arg + 1] = (0x00FF & (MVN->ci+2));
             MVN->ci = MVN->arg + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0xB: // Entrar Modo Indireto
             MVN->modoIndireto = true;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoModoIndireto= MVN->modoIndireto;
             MVN->ci = MVN->ci +2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0xC: // Halt Machine
@@ -573,6 +675,7 @@ void executar (MVN_t *MVN){ //Executa a instrucao
             printf("\nPressione qualquer tecla para continuar\n");
             getch();
             MVN->ci = MVN->arg;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->arg);
         break;
 
         case 0xD: // Input
@@ -610,7 +713,9 @@ void executar (MVN_t *MVN){ //Executa a instrucao
                 break;
 
             }
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0xE: // Output
@@ -634,10 +739,12 @@ void executar (MVN_t *MVN){ //Executa a instrucao
                 break;
             }
             MVN->ci = MVN->ci + 2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
 
         case 0xF: // OS
             MVN->ci = MVN->ci+2;
+            MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
     }
 }
@@ -711,7 +818,7 @@ void load_lista(evento_t * head, char * filename){ //Carrega a lista inicial de 
     char * parametro;
 
 
-    /**Definir como será feita a leitura do arquivo de eventos e em quais parametros aquilo que foi lido sera alocado**/
+    /**Definir como serï¿½ feita a leitura do arquivo de eventos e em quais parametros aquilo que foi lido sera alocado**/
 
     while (fgets(buf,n,fp) != NULL){
         parametro = strtok (buf," ");
@@ -826,7 +933,7 @@ void menu(evento_t * listaDeEventos, MVN_t * MVN, bool *acompanhamento, bool *fi
         case '7':
             print_list(listaDeEventos);
 
-            /**Chamar a função de estado dos objetos simulados**/
+            /**Chamar a funo de estado dos objetos simulados**/
 
             estado_maquina(MVN);
 
@@ -835,7 +942,7 @@ void menu(evento_t * listaDeEventos, MVN_t * MVN, bool *acompanhamento, bool *fi
         break;
 
         default:
-            printf("\n\nOpção Invalida");
+            printf("\n\nOpcao Invalida");
             menu(listaDeEventos,MVN,acompanhamento,fim);
     }
 
@@ -907,7 +1014,7 @@ void menuDePausa(evento_t * listaDeEventos, MVN_t * MVN, bool *acompanhamento,bo
         break;
 
         default:
-            printf("\n\nOpção Invalida");
+            printf("\n\nOpcao Invalida");
             menuDePausa(listaDeEventos,MVN,acompanhamento,fim);
     }
 
@@ -924,7 +1031,7 @@ void pop_evento(evento_t ** head, evento_t ** retorno){ //Retira um elemento da 
     proximo_evento = (*head)->next;
     (*retorno)->next = malloc(sizeof(evento_t));
 
-    /** Implemente aqui os parâmetros do seu evento**/
+    /** Implemente aqui os parï¿½metros do seu evento**/
 
     (*retorno)->next->nome = proximo_evento->nome;
     (*retorno)->next->tempo = proximo_evento->tempo;
@@ -982,7 +1089,7 @@ void remover_evento (evento_t ** head, evento_t ** retorno, int posicao){ //Remo
 
     (*retorno)->next = malloc(sizeof(evento_t));
 
-    /** Implemente aqui os parâmetros do seu evento**/
+    /** Implemente aqui os parï¿½metros do seu evento**/
 
     (*retorno)->next->nome = aux->nome;
     (*retorno)->next->tempo = aux->tempo;
@@ -1000,74 +1107,102 @@ void remover_evento (evento_t ** head, evento_t ** retorno, int posicao){ //Remo
 
 }
 
-void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acompanhamento, bool *fim){ //Lê qual o tipo de evento e toma a ação adequada.
+void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acompanhamento, bool *fim){ //Lï¿½ qual o tipo de evento e toma a aï¿½ï¿½o adequada.
 
-    /**Nesta parte deve ser implementado como o evento deve ser identificado a partir de seus parâmetros e como o simulador deve reagir a cada evento**/
+    /**Nesta parte deve ser implementado como o evento deve ser identificado a partir de seus parï¿½metros e como o simulador deve reagir a cada evento**/
 
     char op;
     op = atual->next->nome;
     int tarefa = atual->next->tarefa;
-    switch(op){
-        case 'C'://Carregar Programa e iniciar execução na MVN
-            printf("\nDigite o nome do arquivo que contem o programa a ser carregado: ");
-            char file[100];
-            scanf("%s",file);
-            carregarPrograma(MVN, file, tarefa);
-            //estado_maquina(MVN);
-        break;
+    if (op == 'T' || op == 'C'){
+        switch(op){
+            case 'C'://Carregar Programa e iniciar execuï¿½ï¿½o na MVN
+                printf("\nDigite o nome do arquivo que contem o programa a ser carregado: ");
+                char file[100];
+                scanf("%s",file);
+                MVN->modoSupervisor = true;
+                MVN->programaAtivo = tarefa;
+                carregarPrograma(MVN, file, tarefa);
+                //estado_maquina(MVN);
+            break;
 
-        case 'N':
-        	fetch(MVN);
-        	decodificar(MVN);
-        	executar(MVN);
-        	inserir_evento(head,'N',atual->next->tempo+1,atual->next->tarefa,false);
-        break;
+            case 'T':
+                MVN->programaAtivo = tarefa;
+                int linhaPrograma = procurarPrograma(MVN, tarefa);
+                int enderecoProcesso = procurarEnderecoProcesso(MVN, tarefa, MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi/0x1000, head, atual);
+                if (enderecoProcesso !=1 && enderecoProcesso != MEM_TAM){
+                    MVN->acc = MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc;
+                    MVN->modoIndireto = MVN->ListaDeProgramas.linha[linhaPrograma].ultimoModoIndireto;
+                    MVN->ci = enderecoProcesso + (MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi & 0x0FFF);
+                    inserir_evento(head, 'F', atual->next->tempo + 1, tarefa,false);
+                }
+            break;
+        }
+    }
+    else if (MVN->programaAtivo == tarefa){
+        switch(op){
+            case 'A': // Alocar
+                MVN->modoSupervisor = true;
+                alocarProcessoNaMemoria(MVN, atual->next->tarefa, MVN->memoria[MEM_TAM-1],MVN->memoria[MEM_TAM-2]);
+            break;
 
-        // case 'D':
-        //     decodificar(MVN);//Decodificar
-        //     //estado_maquina(MVN);
-        //     inserir_evento(head,'E',atual->next->tempo+1,atual->next->tarefa,false);
-        // break;
+            // case 'N':
+            // 	fetch(MVN);
+            // 	decodificar(MVN);
+            // 	executar(MVN);
+            // 	inserir_evento(head,'N',atual->next->tempo+1,atual->next->tarefa,false);
+            // break;
 
-        // case 'E': // Executar
-        //     executar(MVN);
-        //     //estado_maquina(MVN);
-        //     inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
-        //     if (*acompanhamento == true){ //caso o acompanhamento passo a passo esteja ligado, pausa a simulacao.
-        //         menuDePausa(head,MVN,acompanhamento,fim);
-        //     }
-        // break;
+            case 'D':
+                MVN->modoSupervisor = false;
+                decodificar(MVN, head, atual);//Decodificar
+                //estado_maquina(MVN);
+            break;
 
-        case 'I'://Iniciar Programa
-            iniciarPrograma(MVN, tarefa);
-            inserir_evento(head,'N',atual->next->tempo, atual->next->tarefa,false);
-        break;
+            case 'E': // ExecutarMVN,
+                MVN->modoSupervisor = false;
+                executar(MVN, atual->next->tarefa);
+                //estado_maquina(MVN);
+                inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
+                // if (*acompanhamento == true){ //caso o acompanhamento passo a passo esteja ligado, pausa a simulacao.
+                //     menuDePausa(head,MVN,acompanhamento,fim);
+                //}
+            break;
 
-        // case 'F': //Fetch
-        //     fetch(MVN);
-        //     //estado_maquina(MVN);
-        //     inserir_evento(head,'D',atual->next->tempo+1,atual->next->tarefa,false);
-        // break;
+            case 'I'://Iniciar Programa
+                MVN->modoSupervisor = true;
+                iniciarPrograma(MVN, tarefa);
+                inserir_evento(head,'F',atual->next->tempo+1, atual->next->tarefa,false);
+            break;
 
-        case 'P': //Print
-            print_list(head);
-            estado_maquina(MVN);
-        break;
+            case 'F': //Fetch
+                MVN->modoSupervisor = false;
+                fetch(MVN);
+                //estado_maquina(MVN);
+                inserir_evento(head,'D',atual->next->tempo+1,atual->next->tarefa,false);
+            break;
 
-        case 'S'://Stop
-            menuDePausa(head,MVN,acompanhamento,fim);
+            case 'P': //Print
+                print_list(head);
+                estado_maquina(MVN);
+            break;
 
-        default:
-            printf("\nEvento Invalido");
+            case 'S'://Stop
+                menuDePausa(head,MVN,acompanhamento,fim);
+            break;
+
+            default:
+                printf("\nEvento Invalido");
 
 
+        }
     }
 
     if (*acompanhamento == true){ //caso o acompanhamento passo a passo esteja ligado, pausa a simulacao.
             menuDePausa(head,MVN,acompanhamento,fim);
     }
 
-    /**Término da implementação**/
+    /**Tï¿½rmino da implementaï¿½ï¿½o**/
 }
 
 /** Programa principal **/
