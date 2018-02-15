@@ -27,7 +27,7 @@ typedef struct evento{ //Definicao do evento e seus parametros relevantes
         char nome;      //identificador do evento
         int tempo;      //tempo previsto de simulacao
         int tarefa;     //tarefa ao qual o evento esta associado
-        bool breakpoint;
+        bool device;
 
     /**Termino da Implementacao**/
 
@@ -86,6 +86,7 @@ typedef struct DispositivoDeEntrada{
     bool termino;
     int tempo;
     int valor;
+    int enderecoDeEscrita;
 }DispositivoDeEntrada_t;
 
 typedef struct DispositivoDeSaida{
@@ -94,6 +95,7 @@ typedef struct DispositivoDeSaida{
     bool termino;
     int tempo;
 }DispositivoDeSaida_t;
+
 
 typedef struct MVN{
     uint8_t memoria[MEM_TAM]; //memoria
@@ -106,6 +108,7 @@ typedef struct MVN{
     long cursorEntrada;
     bool modoIndireto;
     bool modoSupervisor;
+    bool intEnable;
     int programaAtivo;
     ListaDeProgramas_t ListaDeProgramas;
     MapaDeMemoria_t MapaDeMemoria;
@@ -120,7 +123,7 @@ void pop_evento(evento_t ** head, evento_t ** retorno);
 void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool* acompanhamento, bool* fim);
 void menuDePausa(evento_t * listaDeEventos, MVN_t * MVN, bool *acompanhamento,bool *fim);
 int procurarPrograma(MVN_t * MVN, int id);
-void inserir_evento (evento_t * head, char nome, int tempo, int tarefa, bool breakpoint);
+void inserir_evento (evento_t * head, char nome, int tempo, int tarefa, bool device);
 
 /**Reacoes a eventos especificos referentes aos objetos simulados**/
 
@@ -137,6 +140,7 @@ void inicializarMVN(MVN_t * MVN){
     MVN->modoIndireto = false;
     MVN->modoSupervisor = false;
     MVN->programaAtivo = -1;
+    MVN->intEnable = true;
 
     LinhaMapaDeMemoria_t * linhaMemoriaAtual;
 
@@ -176,7 +180,7 @@ void inicializarMVN(MVN_t * MVN){
     for (i = 0; i < NUM_DEVICE; i++){
         deviceEntradaAtual = &MVN->DispositivosDeEntrada[i];
         deviceSaidaAtual = &MVN->DispositivosDeSaida[i];
-        deviceEntradaAtual->reg = 0;
+        deviceEntradaAtual->reg = i+1;
         deviceSaidaAtual->reg = 0;
         deviceEntradaAtual->tempo = NUM_DEVICE - i;
         deviceSaidaAtual->tempo = NUM_DEVICE - i;
@@ -185,6 +189,7 @@ void inicializarMVN(MVN_t * MVN){
         deviceEntradaAtual->uso = false;
         deviceSaidaAtual->uso = false;
         deviceEntradaAtual->valor = i+1;
+        deviceEntradaAtual->enderecoDeEscrita = 0;
     }
 
     MVN->disco.ultimoBlocoOcupado = -1;
@@ -276,6 +281,24 @@ void imprimirDisco(MVN_t* MVN){
 	}
 }
 
+void imprimirDispositivoDeEntrada(MVN_t* MVN){
+    DispositivoDeEntrada_t* deviceEntradaAtual;
+    int i;
+    for (i = 0; i < NUM_DEVICE; i++){
+        deviceEntradaAtual = &MVN->DispositivosDeEntrada[i];
+        printf("\nDevice de Entrada %d:\nRegistrador: %02x\nEm uso: %d\nTermino: %d\nTempo de Demora: %d\n",i,deviceEntradaAtual->reg,deviceEntradaAtual->uso,deviceEntradaAtual->termino,deviceEntradaAtual->tempo);
+    }
+}
+
+void imprimirDispositivoDeSaida(MVN_t* MVN){
+    DispositivoDeSaida_t* deviceSaidaAtual;
+    int i;
+    for (i = 0; i < NUM_DEVICE; i++){
+        deviceSaidaAtual = &MVN->DispositivosDeSaida[i];
+        printf("\nDevice de Saida %d:\nRegistrador: %02x\nEm uso: %d\nTermino: %d\nTempo de Demora: %d\n",i,deviceSaidaAtual->reg,deviceSaidaAtual->uso,deviceSaidaAtual->termino,deviceSaidaAtual->tempo);
+    }
+}
+
 void estado_maquina(MVN_t * MVN){ //Printa o conte�do do acumulador, Contador de Instru��es, Instru��o realizada, Operando e o conte�do na mem�ria
     printf("\nO estado atual da maquina eh: ");
     printf("\nAcumulador: %04x",MVN->acc);
@@ -285,6 +308,16 @@ void estado_maquina(MVN_t * MVN){ //Printa o conte�do do acumulador, Contador 
     printf("\nSupervisor: %1d", MVN->modoSupervisor);
     printf("\nProgramaAtivo: %2d", MVN->programaAtivo);
     char op[100];
+    printf("\n\nMostrar Dispositivos de Entrada?(y/n) ");
+    scanf("%s",op);
+    if (op[0] == 'y'){
+        imprimirDispositivoDeEntrada(MVN);
+    }
+    printf("\n\nMostrar Dispositivos de Saida?(y/n) ");
+    scanf("%s",op);
+    if (op[0] == 'y'){
+        imprimirDispositivoDeSaida(MVN);
+    }
     printf("\n\nMostrar Memoria?(y/n) ");
     scanf("%s",op);
     if (op[0] == 'y'){
@@ -325,8 +358,6 @@ int adicionarProgramaNaListaDeProgramas(MVN_t * MVN, int tarefa, int enderecoIni
 	linhaProgramaAtual->carregadoNoDisco = true;
 	linhaProgramaAtual->idPrograma = tarefa;
 	linhaProgramaAtual->ultimoCi = enderecoInicial;
-
-
 	return indice;
 }
 
@@ -484,8 +515,8 @@ int procurarEnderecoProcesso(MVN_t* MVN, int idPrograma, int processo ,  evento_
         if (linhaAtualProcesso.blocoMemoriaFisica != -1){
         	return linhaAtualProcesso.blocoMemoriaFisica * 0x1000;
         }
-        inserir_evento(head,atual->next->nome,atual->next->tempo,atual->next->tarefa,atual->next->breakpoint);
-        inserir_evento(head,'A', atual->next->tempo -1 , atual->next->tarefa, atual->next->breakpoint);
+        inserir_evento(head,atual->next->nome,atual->next->tempo,atual->next->tarefa,atual->next->device);
+        inserir_evento(head,'A', atual->next->tempo -1 , atual->next->tarefa, atual->next->device);
         MVN->memoria[MEM_TAM-1] = processo ;
         MVN->memoria[MEM_TAM-2] = linhaPrograma ;
         return -1;
@@ -558,8 +589,7 @@ void decodificar(MVN_t *MVN, evento_t* head, evento_t* atual){ //Separa a instru
         else if (processoEncontrado == 1){
             inserir_evento(head,'E',atual->next->tempo+1,atual->next->tarefa,false);
         }
-        else {
-            //printf("\n\nNECESSARIO ALOCAR PROCESSO\n\n");
+        else {; // cessario alocar processo
             MVN->instrucao = aux;
         }
     }
@@ -569,7 +599,7 @@ void decodificar(MVN_t *MVN, evento_t* head, evento_t* atual){ //Separa a instru
     }
 }
 
-void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
+void executar (MVN_t *MVN, int idPrograma, evento_t* head, evento_t* atual){ //Executa a instrucao
 
     FILE *fp;
     char arquivo [100];
@@ -584,6 +614,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
         case 0x0: // Jump Incoditional
             MVN->ci = MVN->arg;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->arg);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x1:
@@ -595,6 +626,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
                 MVN->ci = MVN->ci + 2;
                 MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
             }
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x2:
@@ -606,6 +638,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
                 MVN->ci = MVN->ci + 2;
                 MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
             }
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x3: // Load Value
@@ -613,6 +646,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x4: // Add
@@ -620,6 +654,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci +2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x5: // Sub
@@ -627,6 +662,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x6: // Multiply
@@ -634,6 +670,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x7: // Divide
@@ -641,6 +678,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x8: //Load from memory
@@ -648,19 +686,24 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0x9: //Store
             MVN->memoria[MVN->arg] = (0x00FF & MVN->acc);
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
-        case 0xA: // Call subroutine
-            MVN->memoria[MVN->arg] = ((MVN->ci+2)/0x100);
-            MVN->memoria[MVN->arg + 1] = (0x00FF & (MVN->ci+2));
+        case 0xA: // Enable/Disable interrupts
+            if (MVN->intEnable == true)
+                MVN->intEnable = false;
+            else
+                MVN->intEnable = true;
             MVN->ci = MVN->arg + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0xB: // Entrar Modo Indireto
@@ -668,6 +711,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoModoIndireto= MVN->modoIndireto;
             MVN->ci = MVN->ci +2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0xC: // Halt Machine
@@ -676,6 +720,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             getch();
             MVN->ci = MVN->arg;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi = calcularEnderecoLogico(MVN,MVN->arg);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0xD: // Input
@@ -716,6 +761,7 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoAcc = MVN->acc;
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0xE: // Output
@@ -740,9 +786,19 @@ void executar (MVN_t *MVN, int idPrograma){ //Executa a instrucao
             }
             MVN->ci = MVN->ci + 2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
+            inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
         break;
 
         case 0xF: // OS
+            switch ((MVN->arg - banco)/0x100){
+                case 0:
+                    inserir_evento(head, 'B', atual->next->tempo+1, atual->next->tarefa, ((MVN->arg & 0x00F0)/0x10));
+                break;
+
+                case 1:
+                    inserir_evento(head, 'H', atual->next->tempo+1, atual->next->tarefa, ((MVN->arg & 0x00F0)/0x10));
+                break;
+            }
             MVN->ci = MVN->ci+2;
             MVN->ListaDeProgramas.linha[linhaPrograma].ultimoCi =  calcularEnderecoLogico(MVN,MVN->ci);
         break;
@@ -767,7 +823,7 @@ void print_list(evento_t * head){ //Printa a lista de eventos
     printf("\n");
 }
 
-void inserir_evento (evento_t * head, char nome, int tempo, int tarefa, bool breakpoint){ //Insere um evento na lista de acordo com o tempo de execucao dele
+void inserir_evento (evento_t * head, char nome, int tempo, int tarefa, bool device){ //Insere um evento na lista de acordo com o tempo de execucao dele
 
     evento_t *temp, *left, *right;
     right = head;
@@ -787,7 +843,7 @@ void inserir_evento (evento_t * head, char nome, int tempo, int tarefa, bool bre
     temp->nome = nome;
     temp->tempo = tempo;
     temp->tarefa = tarefa;
-    temp->breakpoint = breakpoint;
+    temp->device = device;
 
     /**Termino da Implementacao**/
 
@@ -811,7 +867,7 @@ void load_lista(evento_t * head, char * filename){ //Carrega a lista inicial de 
     char mne;
     int tempo;
     int tarefa;
-    bool breakpoint;
+    bool device;
 
     /** Termino **/
 
@@ -828,8 +884,8 @@ void load_lista(evento_t * head, char * filename){ //Carrega a lista inicial de 
         parametro = strtok(NULL, " ");
         tarefa = strtol(parametro, &parametro, 10);
         parametro = strtok(NULL, " ");
-        breakpoint = strtol(parametro,&parametro, 2);
-        inserir_evento(head,mne,tempo,tarefa,breakpoint);
+        device = strtol(parametro,&parametro, 2);
+        inserir_evento(head,mne,tempo,tarefa,device);
     }
 
     /**Termino**/
@@ -838,11 +894,38 @@ void load_lista(evento_t * head, char * filename){ //Carrega a lista inicial de 
     fclose (fp);
 }
 
+//void countdownDevices(MVN_t* MVN){
+//    DispositivoDeEntrada_t *deviceEntradaAtual;
+//    DispositivoDeSaida_t *deviceSaidaAtual;
+//    int i;
+//
+//    for (i = 0; i < NUM_DEVICE; i++){
+//        deviceEntradaAtual = &MVN->DispositivosDeEntrada[i];
+//        deviceSaidaAtual = &MVN->DispositivosDeSaida[i];
+//        if (deviceEntradaAtual->uso == true){
+//            deviceEntradaAtual->timer -= 1;
+//            if (deviceEntradaAtual->timer == 0){
+//               deviceEntradaAtual->termino = true;
+//            }
+//        }
+//        if (deviceSaidaAtual->uso == true){
+//            deviceSaidaAtual->timer -= 1;
+//            if (deviceSaidaAtual->timer == 0){
+//               deviceSaidaAtual->termino = true;
+//            }
+//        }
+//    }
+//}
+
 void loopDeSimulacao(evento_t *listaDeEventos, MVN_t * MVN,bool *acompanhamento,bool *fim){ //Loop de Simulacao. Retira o primeiro elemento da lista e o resolve.
     evento_t *atual = malloc(sizeof(evento_t));
     atual->next = malloc(sizeof(evento_t));
     atual->next->next = NULL;
-    while (listaDeEventos->next != NULL & *fim == false){ //caso fim seja true, encerra a simulacao
+    while (*fim == false){ //caso fim seja true, encerra a simulacao
+        if (listaDeEventos->next == NULL){
+            printf("\n\nLISTA VAZIA\n\n");
+           menuDePausa(listaDeEventos,MVN,acompanhamento,fim);
+        }
         pop_evento(&listaDeEventos,&atual);
         seletorDeEvento(listaDeEventos,atual,MVN, acompanhamento,fim);
     }
@@ -1036,7 +1119,7 @@ void pop_evento(evento_t ** head, evento_t ** retorno){ //Retira um elemento da 
     (*retorno)->next->nome = proximo_evento->nome;
     (*retorno)->next->tempo = proximo_evento->tempo;
     (*retorno)->next->tarefa = proximo_evento->tarefa;
-    (*retorno)->next->breakpoint = proximo_evento->breakpoint;
+    (*retorno)->next->device = proximo_evento->device;
 
     /**Termino da Implementacao**/
 
@@ -1048,7 +1131,7 @@ void pop_evento(evento_t ** head, evento_t ** retorno){ //Retira um elemento da 
 
 }
 
-void append_evento(evento_t * head, char nome, int tempo, int tarefa, bool breakpoint){ //Adiciona um evento ao final da lista (OS PARAMETROS MUDAM DE ACORDO COM OS PARAMETROS DO EVENTO)
+void append_evento(evento_t * head, char nome, int tempo, int tarefa, bool device){ //Adiciona um evento ao final da lista (OS PARAMETROS MUDAM DE ACORDO COM OS PARAMETROS DO EVENTO)
 
     evento_t * it = head;
     while (it->next != NULL){
@@ -1062,7 +1145,7 @@ void append_evento(evento_t * head, char nome, int tempo, int tarefa, bool break
     it->next->nome = nome;
     it->next->tempo = tempo;
     it->next->tarefa =  tarefa;
-    it->next->breakpoint = breakpoint;
+    it->next->device = device;
 
     /**Termino da Implementacao**/
 
@@ -1094,7 +1177,7 @@ void remover_evento (evento_t ** head, evento_t ** retorno, int posicao){ //Remo
     (*retorno)->next->nome = aux->nome;
     (*retorno)->next->tempo = aux->tempo;
     (*retorno)->next->tarefa = aux->tarefa;
-    (*retorno)->next->breakpoint = aux->breakpoint;
+    (*retorno)->next->device = aux->device;
 
     /**Termino da Implementacao**/
 
@@ -1114,7 +1197,7 @@ void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acomp
     char op;
     op = atual->next->nome;
     int tarefa = atual->next->tarefa;
-    if (op == 'T' || op == 'C'){
+    if (op == 'T' || op == 'C' || op == 'B' || op == 'G' || op == 'K' || op == 'H' || op == 'J' || op == 'L' ){
         switch(op){
             case 'C'://Carregar Programa e iniciar execu��o na MVN
                 printf("\nDigite o nome do arquivo que contem o programa a ser carregado: ");
@@ -1124,6 +1207,56 @@ void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acomp
                 MVN->programaAtivo = tarefa;
                 carregarPrograma(MVN, file, tarefa);
                 //estado_maquina(MVN);
+            break;
+
+            case 'B': //request dispositivo de entrada
+                 MVN->modoSupervisor = true;
+                if (MVN->DispositivosDeEntrada[atual->next->device].uso == true) {
+                    inserir_evento(head,'B',atual->next->tempo+1,atual->next->tarefa,atual->next->device);
+                }
+                else{
+                    MVN->DispositivosDeEntrada[atual->next->device].uso = true;
+                    inserir_evento(head,'G',atual->next->tempo + MVN->DispositivosDeEntrada[atual->next->device].tempo,atual->next->tarefa,atual->next->device);
+                    MVN->DispositivosDeEntrada[atual->next->device].enderecoDeEscrita = (MVN->ci/0x1000)*0x1000 + MVN->acc;
+                }
+            break;
+
+            case 'G': //termino dispositivo de entrada
+                MVN->DispositivosDeEntrada[atual->next->device].reg = MVN->DispositivosDeEntrada[atual->next->device].valor;
+                MVN->DispositivosDeEntrada[atual->next->device].termino = true;
+                inserir_evento(head,'K',atual->next->tempo+1,atual->next->tarefa,atual->next->device);
+            break;
+
+            case 'K': //finalizar dispositivo de entrada
+                 MVN->modoSupervisor = true;
+                 MVN->memoria[MVN->DispositivosDeEntrada[atual->next->device].enderecoDeEscrita] = MVN->DispositivosDeEntrada[atual->next->device].reg;
+                 MVN->DispositivosDeEntrada[atual->next->device].termino = false;
+                 MVN->DispositivosDeEntrada[atual->next->device].uso = false;
+                 inserir_evento(head,'F',atual->next->tempo+1,atual->next->tarefa,atual->next->device);
+            break;
+
+            case 'H': //request dispositivo de saida
+                MVN->modoSupervisor = true;
+                if (MVN->DispositivosDeSaida[atual->next->device].uso == true) {
+                    inserir_evento(head,'H',atual->next->tempo+1,atual->next->tarefa,atual->next->device);
+                }
+                else{
+                    MVN->DispositivosDeSaida[atual->next->device].reg = MVN->acc;
+                    MVN->DispositivosDeSaida[atual->next->device].uso = true;
+                    inserir_evento(head,'J',atual->next->tempo + MVN->DispositivosDeSaida[atual->next->device].tempo,atual->next->tarefa,atual->next->device);
+                    inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
+                }
+            break;
+
+            case 'J': //termino dispositivo de saida
+                MVN->DispositivosDeSaida[atual->next->device].termino = true;
+                inserir_evento(head,'L',atual->next->tempo+1,atual->next->tarefa,atual->next->device);
+            break;
+
+            case 'L': //finalizar dispositivo de saida
+                MVN->modoSupervisor = true;
+                MVN->DispositivosDeSaida[atual->next->device].termino = false;
+                MVN->DispositivosDeSaida[atual->next->device].uso = false;
             break;
 
             case 'T':
@@ -1141,17 +1274,11 @@ void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acomp
     }
     else if (MVN->programaAtivo == tarefa){
         switch(op){
+
             case 'A': // Alocar
                 MVN->modoSupervisor = true;
                 alocarProcessoNaMemoria(MVN, atual->next->tarefa, MVN->memoria[MEM_TAM-1],MVN->memoria[MEM_TAM-2]);
             break;
-
-            // case 'N':
-            // 	fetch(MVN);
-            // 	decodificar(MVN);
-            // 	executar(MVN);
-            // 	inserir_evento(head,'N',atual->next->tempo+1,atual->next->tarefa,false);
-            // break;
 
             case 'D':
                 MVN->modoSupervisor = false;
@@ -1161,9 +1288,8 @@ void seletorDeEvento (evento_t * head, evento_t *atual, MVN_t * MVN, bool *acomp
 
             case 'E': // ExecutarMVN,
                 MVN->modoSupervisor = false;
-                executar(MVN, atual->next->tarefa);
+                executar(MVN, atual->next->tarefa, head, atual);
                 //estado_maquina(MVN);
-                inserir_evento(head,'F', atual->next->tempo+1, atual->next->tarefa,false);
                 // if (*acompanhamento == true){ //caso o acompanhamento passo a passo esteja ligado, pausa a simulacao.
                 //     menuDePausa(head,MVN,acompanhamento,fim);
                 //}
